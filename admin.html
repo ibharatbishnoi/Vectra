@@ -13,6 +13,12 @@ table.l{width:100%;border-collapse:collapse;font-size:13px}table.l th,table.l td
 #printArea{display:none}
 @media print{body>*:not(#printArea){display:none!important}#printArea{display:block!important;font:13px Arial;color:#182230;background:#fff}#printArea table{width:100%;border-collapse:collapse;margin-top:18px}#printArea th,#printArea td{border:1px solid #cfd6de;padding:7px;text-align:left}#printArea th{background:#f1f4f7}@page{margin:14mm}}
  
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin:16px 0}.kpi{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:14px}.kpi b{display:block;font-size:24px}.kpi small{color:var(--muted);font-weight:700}
+.bars{display:flex;gap:14px;align-items:flex-end;height:140px}.bars div{flex:1;text-align:center;font-size:12px;color:var(--muted)}.bars i{display:block;background:var(--red);border-radius:5px 5px 0 0;min-height:3px;margin-bottom:4px}
+.tabs{display:flex;flex-wrap:wrap;overflow-x:auto}.fs{border:1px solid var(--line);border-radius:8px;padding:12px;margin:10px 0}.fs legend{font-weight:800;font-size:13px;padding:0 6px}
+.pill.won{background:#d9e8ff;color:#1b4b9b}.pill.lost{background:#fde4e8;color:#8f1b2c}.pill.late{background:#fde4e8;color:#8f1b2c}
+.pgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:0 14px}.pgrid input{width:100%}.pr{display:flex;gap:12px;align-items:center;border:1px solid var(--line);border-radius:8px;padding:8px;margin:6px 0}.pr img{width:48px;height:48px;object-fit:contain;background:#eef1f5;border-radius:6px}.pr div{flex:1;min-width:0}.pr small{color:var(--muted);display:block}
+.field input,.field textarea{width:100%}label.field{display:block}
 html,body{min-height:100%;margin:0}
 body.embedded-admin{padding-bottom:18px}
 body.embedded-admin>header.site{display:none}
@@ -22,135 +28,39 @@ body.embedded-admin .wrap{max-width:1180px}
 <div class="wrap">
 <div id="login" class="box" style="max-width:420px;margin:40px auto"><h2>Staff sign in</h2><div class="field"><label for="em">Email</label><input id="em" type="email" autocomplete="username"></div><div class="field"><label for="pw">Password</label><input id="pw" type="password" autocomplete="current-password"></div><p><button class="btn" id="in">Sign in</button></p><div class="msg" id="lmsg" aria-live="polite"></div></div>
 <div id="app" hidden>
-<div class="tabs" role="tablist"><button role="tab" id="t1" aria-selected="true">Requests</button><button role="tab" id="t2" aria-selected="false">Saved quotations</button><button role="tab" id="t3" aria-selected="false">Products</button><button role="tab" id="t4" aria-selected="false">Customers &amp; follow-ups</button></div>
-<div id="v1"><div class="box"><div class="row"><input id="rs" type="search" placeholder="Search name / phone / ref" style="flex:1"><select id="rf"><option value="">All statuses</option><option>pending</option><option>quoted</option><option>closed</option></select><button class="btn ghost" id="rr">Refresh</button></div><p class="meta" id="rc"></p><div id="rl"></div></div>
-<div class="box" id="ed" hidden><h2 style="margin-top:0">Prepare quotation</h2><p id="cust" class="meta"></p>
-<div class="row"><label>Quote no.<br><input id="qn" readonly placeholder="auto-generated on save"></label><label>Date<br><input id="qd" type="date"></label><label>Valid until<br><input id="qv" type="date"></label><label>GST<br><select id="qg"><option value="intra">CGST + SGST (Gujarat)</option><option value="inter">IGST (interstate)</option></select></label><label>Request status<br><select id="rst"><option>pending</option><option>quoted</option><option>closed</option></select></label></div>
-<div style="overflow-x:auto;margin-top:14px"><table class="l"><thead><tr><th>Product</th><th>HSN/SAC</th><th>Qty</th><th>Rate ₹</th><th>GST %</th><th>Taxable ₹</th><th>GST ₹</th><th>Total ₹</th></tr></thead><tbody id="ql"></tbody></table></div>
-<div class="row" style="margin-top:10px"><label>Discount ₹<br><input id="qDiscount" type="number" min="0" step="0.01" value="0"></label><label>Freight / other charges ₹<br><input id="qFreight" type="number" min="0" step="0.01" value="0"></label></div><div class="tot" id="tt"></div>
-<label class="field">Terms &amp; conditions<textarea id="qt" rows="3">Prices are exclusive of GST unless stated. GST will be charged at applicable rates. Delivery, freight and payment terms as mutually agreed.</textarea></label>
-<div class="row" style="margin-top:14px"><button class="btn" id="sv">Save quotation</button><button class="btn ghost" id="pr">Print / Save PDF</button><button class="btn wa" id="wa">Send on WhatsApp</button></div><div class="msg" id="qm" aria-live="polite"></div></div></div>
-<div id="v2" hidden><div class="box"><div id="ql2"></div></div></div>
-<div id="v3" hidden><div class="box"><h2>Product catalogue manager</h2><p class="meta">Manage live catalogue entries in Supabase. Existing products.json remains the fallback until products are migrated.</p><div class="row"><input id="ps" type="search" placeholder="Search products" style="flex:1"><button class="btn ghost" id="pRefresh">Refresh</button></div><div class="row" style="margin-top:12px"><input id="pId" type="number" placeholder="Product ID"><input id="pName" placeholder="Product name" style="flex:2"><input id="pCat" placeholder="Category" style="flex:1"><input id="pImage" placeholder="Image filename" style="flex:1"></div><div class="row" style="margin-top:8px"><input id="pBrand" placeholder="Brand"><input id="pModel" placeholder="Model"><input id="pDesc" placeholder="Description" style="flex:2"><button class="btn" id="pSave">Save product</button></div><div id="pList" style="margin-top:14px"></div></div></div>
-<div id="v4" hidden><div class="box"><h2>Customer database</h2><div class="row"><input id="cs" type="search" placeholder="Search customer / phone / GSTIN" style="flex:1"><button class="btn ghost" id="cRefresh">Refresh</button></div><div id="cList" style="margin-top:12px"></div></div><div class="box"><h2>Follow-up reminders</h2><div class="row"><select id="fCustomer" style="min-width:220px;flex:1"><option value="">Select customer</option></select><input id="fDue" type="datetime-local"><input id="fNote" placeholder="Call / email / action required" style="flex:2"><button class="btn" id="fAdd">Add reminder</button></div><div id="fList" style="margin-top:12px"></div></div></div>
+<div class="tabs" role="tablist" id="tabs"><button role="tab" data-t="d" aria-selected="true">Dashboard</button><button role="tab" data-t="r" aria-selected="false">Enquiries</button><button role="tab" data-t="f" aria-selected="false">Follow-ups <span class="pill pending" id="fcnt" hidden></span></button><button role="tab" data-t="q" aria-selected="false">Quotations</button><button role="tab" data-t="c" aria-selected="false">Customers</button><button role="tab" data-t="p" aria-selected="false">Products</button></div>
+
+<div id="vd"><div class="kpis" id="kpis"></div>
+<div class="box"><h3 style="margin-top:0">Enquiries – last 6 months</h3><div class="bars" id="bars"></div></div>
+<div class="box"><h3 style="margin-top:0">Follow-ups due</h3><div id="fdue"></div></div>
+<div class="box row"><strong>Export</strong><button class="btn ghost" id="exR">Enquiries CSV</button><button class="btn ghost" id="exQ">Quotations CSV</button></div></div>
+
+<div id="vr" hidden><div class="box"><div class="row"><input id="rs" type="search" placeholder="Search name / phone / ref" style="flex:1"><select id="rf"><option value="">All statuses</option><option>pending</option><option>quoted</option><option>won</option><option>lost</option><option>closed</option></select><select id="ra"><option value="">All staff</option></select><label class="meta">From <input id="rfrom" type="date"></label><label class="meta">To <input id="rto" type="date"></label><button class="btn ghost" id="rr">Refresh</button></div><p class="meta" id="rc"></p><div id="rl"></div></div>
+
+<div class="box" id="ed" hidden><h2 style="margin-top:0">Enquiry &amp; quotation</h2><p id="cust" class="meta"></p>
+<fieldset class="fs"><legend>Handling</legend><div class="row"><label>Assigned to<br><input id="as" list="staff" maxlength="60" placeholder="Salesperson"><datalist id="staff"></datalist></label><label>Status<br><select id="rst"><option>pending</option><option>quoted</option><option>won</option><option>lost</option><option>closed</option></select></label><label>Follow-up on<br><input id="fd" type="date"></label><label style="flex:1;min-width:200px">Follow-up note<br><input id="fn" maxlength="200" style="width:100%" placeholder="e.g. call Mr Shah about rates"></label></div>
+<label class="field">Internal notes (never shown to customer)<textarea id="inn" rows="2" maxlength="2000"></textarea></label><button class="btn ghost" id="sh">Save handling details</button> <span class="msg" id="hm" aria-live="polite"></span></fieldset>
+<div class="row" style="margin-top:14px"><label>Quote no.<br><input id="qn" readonly placeholder="auto-generated on save"></label><label>Date<br><input id="qd" type="date"></label><label>Valid until<br><input id="qv" type="date"></label><label>GST<br><select id="qg"><option value="intra">CGST + SGST (Gujarat)</option><option value="inter">IGST (interstate)</option></select></label></div>
+<div style="overflow-x:auto;margin-top:14px"><table class="l"><thead><tr><th>Product</th><th>HSN/SAC</th><th>Qty</th><th>Rate ₹</th><th>Disc %</th><th>GST %</th><th>Taxable ₹</th><th>GST ₹</th><th>Total ₹</th></tr></thead><tbody id="ql"></tbody></table></div>
+<div class="row" style="margin-top:10px"><button class="btn ghost" id="addl" type="button">+ Add line</button><label>Freight / delivery ₹<br><input id="fr" type="number" min="0" step="0.01" style="width:120px"></label><label>Freight GST %<br><select id="fg"><option>0</option><option>5</option><option>12</option><option selected>18</option></select></label></div>
+<div class="tot" id="tt"></div>
+<div class="row"><label class="field" style="flex:1;min-width:220px">Payment terms<input id="pt" maxlength="200" value="100% advance against proforma invoice"></label><label class="field" style="flex:1;min-width:220px">Delivery terms<input id="dt" maxlength="200" value="Ex-works Vadodara; delivery within 7–10 working days"></label></div>
+<label class="field">Terms &amp; conditions<textarea id="qt" rows="3">Prices are exclusive of GST unless stated. GST will be charged at applicable rates. Goods once sold will not be taken back. Subject to Vadodara jurisdiction.</textarea></label>
+<div class="row" style="margin-top:14px"><button class="btn" id="sv">Save quotation</button><button class="btn ghost" id="sn" hidden>Save as new revision</button><button class="btn ghost" id="pr">Print / Save PDF</button><button class="btn wa" id="wa">WhatsApp</button><button class="btn ghost" id="em2">Email</button></div><div class="msg" id="qm" aria-live="polite"></div></div></div>
+
+<div id="vf" hidden><div class="box"><div id="fl"></div></div></div>
+<div id="vq" hidden><div class="box"><div class="row"><input id="qs" type="search" placeholder="Search quote no. / customer" style="flex:1"><select id="qf"><option value="">All statuses</option><option>issued</option><option>accepted</option><option>rejected</option></select></div><div id="ql2"></div></div></div>
+<div id="vc" hidden><div class="box"><input id="cs" type="search" placeholder="Search customer / phone / GSTIN" style="width:100%"><div id="cl"></div></div></div>
+
+<div id="vp" hidden><div class="box"><div class="row"><input id="ps" type="search" placeholder="Search products" style="flex:1"><button class="btn" id="pn">+ Add product</button><button class="btn ghost" id="pi" hidden>Import catalogue from products.json</button></div><p class="meta" id="pc"></p><div id="pl"></div></div>
+<div class="box" id="pe" hidden><h3 style="margin-top:0" id="pt2">Product</h3><div class="pgrid"><label class="field">Name *<input id="pnm" maxlength="160"></label><label class="field">Category *<input id="pcat" list="cats" maxlength="80"><datalist id="cats"></datalist></label><label class="field">Brand<input id="pbr" maxlength="80"></label><label class="field">Image file name or URL<input id="pim" maxlength="300"></label></div>
+<label class="field">Upload photo (JPG/PNG/WebP, max 2 MB)<input id="pup" type="file" accept="image/jpeg,image/png,image/webp"></label>
+<label class="field">Description<textarea id="pds" rows="3" maxlength="2000"></textarea></label>
+<label class="field">Specifications (one per line: <code>Key: value</code>)<textarea id="psp" rows="4" maxlength="2000" placeholder="Power: 850 W&#10;Chuck size: 13 mm"></textarea></label>
+<label class="meta"><input type="checkbox" id="pac" checked> Visible on website</label>
+<div class="row" style="margin-top:12px"><button class="btn" id="ps2">Save product</button><button class="btn ghost" id="pcx">Cancel</button><button class="btn ghost" id="pdl" hidden style="color:#b51f35">Delete</button><span class="msg" id="pm" aria-live="polite"></span></div></div></div>
 </div></div>
 <div id="printArea"></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 <script src="config.js"></script>
-<script>
-"use strict";
-(()=>{
-const $=id=>document.getElementById(id),cfg=window.VECTRA_SUPABASE_CONFIG||{};
-const db=cfg.url&&!/YOUR_/.test(cfg.url+cfg.anonKey)&&window.supabase?window.supabase.createClient(cfg.url,cfg.anonKey):null;
-const safe=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-const inr=p=>(p/100).toLocaleString("en-IN",{minimumFractionDigits:2,maximumFractionDigits:2});
-const msg=(id,t,e)=>{const m=$(id);m.textContent=t;m.className="msg"+(e?" err":"")};
-let reqs=[],cur=null,items=[],editing=null,saved=[];
-/* ---- money in integer paise ---- */
-const line=x=>{const b=Math.round(x.quantity*x.rate*100),t=Math.round(b*x.gst_rate/100);return{b,t,s:b+t}};
-function totals(){let b=0,t=0;items.forEach(x=>{const l=line(x);b+=l.b;t+=l.t});const discount=Math.round(Math.max(0,+$("qDiscount")?.value||0)*100),freight=Math.round(Math.max(0,+$("qFreight")?.value||0)*100);const e=b+t-discount+freight,g=Math.round(e/100)*100;return{b,t,g,ro:g-e,discount,freight}}
-const rof=p=>(p<0?"− ":"+ ")+"₹ "+inr(Math.abs(p));
-function words(n){const o="One Two Three Four Five Six Seven Eight Nine Ten Eleven Twelve Thirteen Fourteen Fifteen Sixteen Seventeen Eighteen Nineteen".split(" "),t="Twenty Thirty Forty Fifty Sixty Seventy Eighty Ninety".split(" ");
- const w=n=>n<20?o[n-1]||"":n<100?t[Math.floor(n/10)-2]+(n%10?" "+o[n%10-1]:""):o[Math.floor(n/100)-1]+" Hundred"+(n%100?" "+w(n%100):"");
- let r=Math.floor(n),s="";[[1e7,"Crore"],[1e5,"Lakh"],[1e3,"Thousand"]].forEach(([d,l])=>{if(r>=d){s+=w(Math.floor(r/d))+" "+l+" ";r%=d}});if(r)s+=w(r);return s.trim()||"Zero"}
-const inWords=p=>"Rupees "+words(Math.floor(p/100))+(p%100?" and "+words(p%100)+" Paise":"")+" Only";
-/* ---- auth ---- */
-if(!db)msg("lmsg","Supabase is not configured. Edit config.js.",1);
-async function boot(){if(!db)return;const{data}=await db.auth.getSession();show(data.session)}
-async function show(s){$("login").hidden=!!s;$("app").hidden=!s;$("out").hidden=!s;if(s){$("who").textContent=s.user.email;await load()}}
-$("in").onclick=async()=>{msg("lmsg","Signing in…");const{data,error}=await db.auth.signInWithPassword({email:$("em").value.trim(),password:$("pw").value});if(error)return msg("lmsg",error.message,1);msg("lmsg","");show(data.session)};
-$("pw").onkeydown=e=>{if(e.key==="Enter")$("in").click()};
-$("out").onclick=async()=>{await db.auth.signOut();cur=null;show(null)};
-/* ---- tabs ---- */
-function tab(n){[1,2,3,4].forEach(i=>{$("v"+i).hidden=i!==n;$("t"+i).setAttribute("aria-selected",i===n)})}
-$("t1").onclick=()=>tab(1);$("t2").onclick=()=>{tab(2);drawSaved()};$("t3").onclick=()=>{tab(3);loadProducts()};$("t4").onclick=()=>{tab(4);loadCustomers()};
-/* ---- requests ---- */
-async function load(){
- $("rl").innerHTML="<p>Loading…</p>";
- const[a,b]=await Promise.all([db.from("quotation_requests").select("*").order("created_at",{ascending:false}).limit(300),db.from("quotations").select("*").order("created_at",{ascending:false}).limit(300)]);
- if(a.error){$("rl").innerHTML='<p class="msg err">'+safe(a.error.message)+" — is this account listed in admin_users?</p>";return}
- reqs=a.data;saved=b.data||[];drawReqs();
-}
-function drawReqs(){
- const s=$("rs").value.toLowerCase().trim(),f=$("rf").value;
- const r=reqs.filter(x=>(!f||x.status===f)&&(!s||(x.customer_name+x.customer_phone+x.id).toLowerCase().includes(s)));
- const n=k=>reqs.filter(x=>x.status===k).length;
- $("rc").textContent=`${r.length} shown · ${n("pending")} pending · ${n("quoted")} quoted · ${n("closed")} closed`;
- $("rl").innerHTML=r.length?r.map(x=>`<div class="req"><div><strong>${safe(x.customer_name)}</strong> <span class="pill ${safe(x.status)}">${safe(x.status)}</span><small>${safe(x.customer_phone)} · ${safe(new Date(x.created_at).toLocaleString("en-IN"))} · ${x.items.length} item(s) · Ref ${safe(x.id.slice(0,8).toUpperCase())}</small></div><button class="btn ghost" data-o="${safe(x.id)}">Open</button></div>`).join(""):"<p>No requests found.</p>";
- $("rl").querySelectorAll("[data-o]").forEach(b=>b.onclick=()=>openReq(b.dataset.o));
-}
-$("rs").oninput=drawReqs;$("rf").onchange=drawReqs;$("rr").onclick=load;
-function openReq(id,qid){
- cur=reqs.find(x=>x.id===id);if(!cur)return;
- const q=qid?saved.find(s=>s.id===qid):saved.find(s=>s.request_id===id);editing=q||null;
- items=q?q.items.map(x=>({size:"",make:"",note:"",...x})):cur.items.map(x=>({name:x.name,category:x.category,quantity:x.quantity,size:x.size||"",make:x.make||"",note:x.note||"",hsn:"",rate:0,gst_rate:18}));
- const d=new Date();
- $("cust").textContent=`${cur.customer_name} · ${cur.customer_phone} · ${cur.customer_email||"no email"} · GSTIN ${cur.customer_gstin||"—"}${cur.customer_notes?" · Note: "+cur.customer_notes:""}`;
- $("qn").value=q?q.quote_number:"";$("qd").value=q?q.quote_date:d.toISOString().slice(0,10);$("qv").value=q?q.valid_until||"":new Date(Date.now()+15*864e5).toISOString().slice(0,10);
- $("qg").value=q?q.gst_treatment:(/^24/.test(cur.customer_gstin||"")||!cur.customer_gstin?"intra":"inter");$("qDiscount").value=q?.discount_amount||0;$("qFreight").value=q?.freight_amount||0;
- if(q)$("qt").value=q.terms||$("qt").value;$("rst").value=cur.status;
- $("ed").hidden=false;tab(1);drawLines();msg("qm",q?"Editing saved quotation "+q.quote_number+".":"");$("ed").scrollIntoView({behavior:"smooth"});
-}
-function drawLines(){
- $("ql").innerHTML=items.map((x,i)=>`<tr data-i="${i}"><td><strong>${safe(x.name)}</strong>${/^Custom/.test(x.category||"")?' <span class="pill pending">Custom item</span>':""}<div class="dg"><input data-k="size" value="${safe(x.size||"")}" maxlength="60" placeholder="Size / spec" aria-label="Size for ${safe(x.name)}"><input data-k="make" value="${safe(x.make||"")}" maxlength="60" placeholder="Make / brand" aria-label="Make for ${safe(x.name)}"><input data-k="note" value="${safe(x.note||"")}" maxlength="200" placeholder="Description / other info" aria-label="Description for ${safe(x.name)}"></div></td><td><input data-k="hsn" value="${safe(x.hsn||"")}" maxlength="8" inputmode="numeric" aria-label="HSN for ${safe(x.name)}"></td><td><input data-k="quantity" type="number" min="1" value="${x.quantity}"></td><td><input data-k="rate" type="number" min="0" step="0.01" inputmode="decimal" value="${x.rate||""}" placeholder="0.00"></td><td><select data-k="gst_rate">${[0,5,12,18,28].map(n=>`<option ${n===x.gst_rate?"selected":""}>${n}</option>`).join("")}</select></td><td data-c="b"></td><td data-c="t"></td><td data-c="s"></td></tr>`).join("");
- $("ql").querySelectorAll("[data-k]").forEach(e=>{const h=()=>{const i=+e.closest("tr").dataset.i,k=e.dataset.k;items[i][k]=["size","make","note"].includes(k)?e.value:k==="hsn"?e.value.replace(/\D/g,""):k==="gst_rate"?+e.value:Math.max(0,+e.value||0);calc()};e.oninput=h;e.onchange=h});
- calc();
-}
-function calc(){
- items.forEach((x,i)=>{const r=$("ql").querySelector(`[data-i="${i}"]`),l=line(x);r.querySelector('[data-c=b]').textContent=inr(l.b);r.querySelector('[data-c=t]').textContent=inr(l.t);r.querySelector('[data-c=s]').textContent=inr(l.s)});
- const t=totals(),c=Math.round(t.t/2),tax=$("qg").value==="intra"?`<div><span>CGST</span><span>₹ ${inr(c)}</span></div><div><span>SGST</span><span>₹ ${inr(t.t-c)}</span></div>`:`<div><span>IGST</span><span>₹ ${inr(t.t)}</span></div>`;
- $("tt").innerHTML=`<div><span>Taxable value</span><span>₹ ${inr(t.b)}</span></div>${tax}<div><span>Discount</span><span>− ₹ ${inr(t.discount)}</span></div><div><span>Freight / other charges</span><span>₹ ${inr(t.freight)}</span></div><div><span>Round off</span><span>${rof(t.ro)}</span></div><div class="g"><span>Grand total</span><span>₹ ${inr(t.g)}</span></div>`;
-}
-$("qg").onchange=calc;$("qDiscount").oninput=calc;$("qFreight").oninput=calc;
-function build(){
- if(!cur||!items.length||items.some(x=>!(x.rate>0)||!(x.quantity>0))){msg("qm","Enter a quantity and a rate above zero for every item.",1);return null}
- const t=totals();return{request_id:cur.id,quote_date:$("qd").value,valid_until:$("qv").value||null,gst_treatment:$("qg").value,items,terms:$("qt").value,taxable_total:t.b/100,gst_total:t.t/100,grand_total:t.g/100,discount_amount:t.discount/100,freight_amount:t.freight/100}}
-$("sv").onclick=async()=>{
- const q=build();if(!q)return;$("sv").disabled=true;msg("qm","Saving…");
- const{data:{session}}=await db.auth.getSession();let res;
- if(editing)res=await db.from("quotations").update(q).eq("id",editing.id).select().single();
- else{const n=await db.rpc("next_quote_number");if(n.error){$("sv").disabled=false;return msg("qm","Could not generate number: "+n.error.message,1)}
-  res=await db.from("quotations").insert({...q,quote_number:n.data,status:"issued",created_by:session.user.id}).select().single()}
- $("sv").disabled=false;if(res.error)return msg("qm","Could not save: "+res.error.message,1);
- editing=res.data;$("qn").value=editing.quote_number;
- const st=$("rst").value==="pending"?"quoted":$("rst").value;await db.from("quotation_requests").update({status:st}).eq("id",cur.id);
- msg("qm","Saved as "+editing.quote_number+".");await load();cur=reqs.find(x=>x.id===cur.id);$("rst").value=cur.status;
-};
-/* ---- print ---- */
-function printable(q,c,no){
- const cg=Math.round(q.gst_total*100/2),ro=Math.round(q.grand_total*100)-Math.round(q.taxable_total*100)-Math.round(q.gst_total*100),rows=q.items.map((x,i)=>{const l=line(x);return`<tr><td>${i+1}</td><td><b>${safe(x.name)}</b>${x.size||x.make?`<br><small>${safe([x.size&&"Size: "+x.size,x.make&&"Make: "+x.make].filter(Boolean).join(" | "))}</small>`:""}${x.note?`<br><small>${safe(x.note)}</small>`:""}</td><td>${safe(x.hsn||"—")}</td><td>${x.quantity}</td><td style="text-align:right">${inr(x.rate*100)}</td><td>${x.gst_rate}%</td><td style="text-align:right">${inr(l.b)}</td><td style="text-align:right">${inr(l.t)}</td><td style="text-align:right">${inr(l.s)}</td></tr>`}).join("");
- const tax=q.gst_treatment==="intra"?`<div>CGST: ₹ ${inr(cg)}</div><div>SGST: ₹ ${inr(Math.round(q.gst_total*100)-cg)}</div>`:`<div>IGST: ₹ ${inr(q.gst_total*100)}</div>`;
- return`<div style="display:flex;justify-content:space-between;border-bottom:3px solid #a51d32;padding-bottom:12px"><div><h1 style="margin:0">VECTRA ENTERPRISES</h1><b>INDUSTRIAL • ENERGY • MRO</b><p style="margin:6px 0">First Floor, Shop No. 135 Wing, Opp. Kataria Show Room, Makarpura, Vadodara, Gujarat – 390014<br>+91 75975 77129 · vectra2029@yahoo.com<br>GSTIN: 24ABCFV2730P1ZX</p></div><div style="text-align:right"><h2 style="margin:0">QUOTATION</h2><b>${safe(no)}</b><p>Date: ${safe(q.quote_date)}<br>Valid until: ${safe(q.valid_until||"—")}</p></div></div>
- <p><b>To:</b> ${safe(c.customer_name)}<br>${safe(c.customer_phone)} ${safe(c.customer_email||"")}<br>GSTIN: ${safe(c.customer_gstin||"—")}</p>
- <table><thead><tr><th>#</th><th>Description</th><th>HSN/SAC</th><th>Qty</th><th>Rate ₹</th><th>GST</th><th>Taxable ₹</th><th>GST ₹</th><th>Total ₹</th></tr></thead><tbody>${rows}</tbody></table>
- <div style="margin:16px 0 0 auto;width:290px;line-height:1.8"><div>Taxable value: ₹ ${inr(q.taxable_total*100)}</div>${tax}<div>Discount: − ₹ ${inr((q.discount_amount||0)*100)}</div><div>Freight / other charges: ₹ ${inr((q.freight_amount||0)*100)}</div><div>Round off: ${rof(ro)}</div><h3 style="margin:6px 0">Grand total: ₹ ${inr(q.grand_total*100)}</h3></div>
- <p><b>Amount in words:</b> ${inWords(Math.round(q.grand_total*100))}</p><p style="white-space:pre-wrap"><b>Terms &amp; Conditions</b><br>${safe(q.terms)}</p>
- <p style="margin-top:50px;text-align:right"><b>For VECTRA ENTERPRISES</b><br><br><br>Authorised Signatory</p>`}
-$("pr").onclick=()=>{const q=build();if(!q)return;$("printArea").innerHTML=printable(q,cur,$("qn").value||"DRAFT");const old=document.title;document.title=($("qn").value||"Quotation").replace(/\//g,"-");window.print();document.title=old};
-$("wa").onclick=()=>{const t=totals(),no=$("qn").value||"(draft)";const p=(cur.customer_phone||"").replace(/\D/g,"").slice(-10);
- const text=`Hello ${cur.customer_name}, thank you for your enquiry. Quotation ${no} from Vectra Enterprises — total ₹ ${inr(t.g)} incl. GST. Valid until ${$("qv").value||"—"}. We will share the PDF shortly.`;
- window.open("https://wa.me/91"+p+"?text="+encodeURIComponent(text),"_blank","noopener")};
-/* ---- saved quotations ---- */
-function drawSaved(){
- $("ql2").innerHTML=saved.length?saved.map(s=>{const c=reqs.find(r=>r.id===s.request_id);return`<div class="req"><div><strong>${safe(s.quote_number)}</strong> <span class="pill ${safe(s.status)}">${safe(s.status)}</span><small>${safe(c?c.customer_name:"—")} · ${safe(s.quote_date)} · ₹ ${inr(s.grand_total*100)}</small></div><div class="row"><select data-s="${safe(s.id)}" aria-label="Status">${["issued","accepted","rejected"].map(x=>`<option ${x===s.status?"selected":""}>${x}</option>`).join("")}</select><button class="btn ghost" data-e="${safe(s.id)}">Reopen</button></div></div>`}).join(""):"<p>No saved quotations yet.</p>";
- $("ql2").querySelectorAll("[data-e]").forEach(b=>b.onclick=()=>{const s=saved.find(x=>x.id===b.dataset.e);openReq(s.request_id,s.id)});
- $("ql2").querySelectorAll("[data-s]").forEach(e=>e.onchange=async()=>{const r=await db.from("quotations").update({status:e.value}).eq("id",e.dataset.s);if(r.error)alert(r.error.message);else await load().then(drawSaved)});
-}
-
-/* ---- product manager ---- */
-let catalogRows=[];
-async function loadProducts(){const box=$("pList");box.innerHTML="Loading products…";const r=await db.from("products").select("*").order("category").order("name").limit(1000);if(r.error){box.textContent="Product table is not ready. Run the updated supabase_schema.sql. "+r.error.message;return}catalogRows=r.data||[];drawProducts()}
-function drawProducts(){const term=$("ps").value.toLowerCase();const rows=catalogRows.filter(x=>(x.name+" "+x.category+" "+(x.brand||"")).toLowerCase().includes(term));$("pList").innerHTML=rows.length?rows.map(x=>`<div class="req"><div><b>${safe(x.name)}</b><small>${safe(x.category)} · ${safe(x.brand||"No brand")} · ID ${x.id} · ${x.active?"Active":"Hidden"}</small></div><div class="row"><button class="btn ghost" data-pe="${x.id}">Edit</button><button class="btn ghost" data-pa="${x.id}">${x.active?"Hide":"Activate"}</button></div></div>`).join(""):"<p>No products in Supabase yet. Use the migration button below to import the existing catalogue.</p>";
-$("pList").querySelectorAll("[data-pe]").forEach(b=>b.onclick=()=>{const x=catalogRows.find(y=>y.id===+b.dataset.pe);["pId","pName","pCat","pImage","pBrand","pModel","pDesc"].forEach((id,i)=>$(id).value=[x.id,x.name,x.category,x.image||"",x.brand||"",x.model||"",x.description||""][i])});
-$("pList").querySelectorAll("[data-pa]").forEach(b=>b.onclick=async()=>{const x=catalogRows.find(y=>y.id===+b.dataset.pa);const r=await db.from("products").update({active:!x.active,updated_at:new Date().toISOString()}).eq("id",x.id);if(r.error)alert(r.error.message);else loadProducts()})}
-$("pRefresh").onclick=loadProducts;$("ps").oninput=drawProducts;
-$("pSave").onclick=async()=>{const id=+( $("pId").value || (Math.max(0,...catalogRows.map(x=>x.id))+1) );const row={id,name:$("pName").value.trim(),category:$("pCat").value.trim(),image:$("pImage").value.trim()||null,brand:$("pBrand").value.trim()||null,model:$("pModel").value.trim()||null,description:$("pDesc").value.trim()||null,active:true};if(!id||!row.name||!row.category)return alert("Product name and category are required.");const r=await db.from("products").upsert(row);if(r.error)return alert(r.error.message);["pId","pName","pCat","pImage","pBrand","pModel","pDesc"].forEach(id=>$(id).value="");loadProducts()};
-/* ---- customer CRM ---- */
-let customerRows=[],followRows=[];
-async function loadCustomers(){const a=await db.from("customers").select("*").order("updated_at",{ascending:false}).limit(1000);if(a.error){$("cList").textContent=a.error.message+" — run the V3 database migration.";return}customerRows=a.data||[];drawCustomers();const b=await db.from("followups").select("*,customers(name,phone)").order("due_at").limit(500);if(b.error){$("fList").textContent=b.error.message;return}followRows=b.data||[];$("fCustomer").innerHTML='<option value="">Select customer</option>'+customerRows.map(c=>`<option value="${c.id}">${safe(c.name)} · ${safe(c.phone)}</option>`).join("");drawFollowups()}
-function drawCustomers(){const t=$("cs").value.toLowerCase();const rows=customerRows.filter(c=>(c.name+c.phone+(c.email||"")+(c.gstin||"")).toLowerCase().includes(t));$("cList").innerHTML=rows.length?rows.map(c=>`<div class="req"><div><b>${safe(c.name)}</b><small>${safe(c.phone)} · ${safe(c.email||"No email")} · GSTIN ${safe(c.gstin||"—")}</small></div><span class="pill">${safe(c.company||"Customer")}</span></div>`).join(""):"<p>No customers yet. New quotation enquiries are added automatically.</p>"}
-function drawFollowups(){$("fList").innerHTML=followRows.length?followRows.map(f=>`<div class="req"><div><b>${safe(f.customers?.name||"Customer")}</b><small>${safe(new Date(f.due_at).toLocaleString("en-IN"))} · ${safe(f.note)}</small></div><div class="row"><span class="pill ${f.status}">${safe(f.status)}</span>${f.status==="open"?`<button class="btn ghost" data-fdone="${f.id}">Mark done</button>`:""}</div></div>`).join(""):"<p>No follow-up reminders yet.</p>";$("fList").querySelectorAll("[data-fdone]").forEach(b=>b.onclick=async()=>{const r=await db.from("followups").update({status:"done"}).eq("id",b.dataset.fdone);if(r.error)alert(r.error.message);else loadCustomers()})}
-$("cs").oninput=drawCustomers;$("cRefresh").onclick=loadCustomers;$("fAdd").onclick=async()=>{const customer_id=$("fCustomer").value,due_at=$("fDue").value,note=$("fNote").value.trim();if(!customer_id||!due_at||!note)return alert("Choose a customer, due date and reminder note.");const r=await db.from("followups").insert({customer_id,due_at:new Date(due_at).toISOString(),note,created_by:(await db.auth.getUser()).data.user.id});if(r.error)alert(r.error.message);else{$("fNote").value="";loadCustomers()}};
-boot();
-})();
-</script><script>if(new URLSearchParams(location.search).has("embedded"))document.body.classList.add("embedded-admin");</script></body></html>
+<script src="admin.js"></script><script>if(new URLSearchParams(location.search).has("embedded"))document.body.classList.add("embedded-admin");</script></body></html>

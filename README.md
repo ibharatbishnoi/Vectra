@@ -1,4 +1,4 @@
-# Vectra Enterprises — catalogue & live quotation system (v2)
+# Vectra Enterprises — catalogue, quotation & mini-CRM (v3)
 
 Static site for Vercel + Supabase. Public catalogue at `/`, staff portal at `/admin`.
 
@@ -28,18 +28,15 @@ Static site for Vercel + Supabase. Public catalogue at `/`, staff portal at `/ad
 - Quotation emailing is not automated; use Print/Save PDF and the WhatsApp button.
 
 
-## V3 business management upgrade
-The V3 migration adds a Supabase-backed product catalogue, customer CRM and follow-up reminders. Quotation editing also supports discount and freight/other charges, and the print/PDF output includes both adjustments. Existing public catalogue, quotation request flow, admin authentication, quote numbering and print/PDF workflow are retained.
+## What's new in v3
+**Public site:** category cards, recently added, product detail pop-up (description, specs, related items, deep link `#p-12`), sort + search across brand/description, **bulk enquiry** (paste or Excel/CSV, auto-matches your catalogue), **quotation tracking** by reference + mobile with online Accept / Decline, "Why Vectra" section, fixed staff-login iframe (now relative `/admin`).
 
-### Upgrade steps
-1. Back up the Supabase project before schema changes.
-2. Run the complete updated `supabase_schema.sql` in Supabase SQL Editor. It adds `products`, `customers`, and `followups`, plus a trigger that syncs incoming enquiries into the customer table.
-3. Sign in to `/admin`, open **Products**, and import the initial catalogue using the migration SQL below (or use the `products.json` data in the repository).
-4. The public site accepts `.xlsx`, `.xls`, and `.csv` bulk enquiry files. First-sheet columns supported: `Product`/`Name`/`Product Name`/`Item`, `Quantity`/`Qty`, `Size`/`Specification`, `Make`/`Brand`, `Description`/`Note`. Up to 100 rows are processed per upload.
-5. Customer and follow-up screens are admin-only under the existing `is_vectra_admin()` RLS guard.
+**Admin:** Dashboard (KPIs, 6-month chart, due follow-ups, CSV export), enquiry handling (assign salesperson, follow-up date/note, internal notes, won/lost), date/staff filters, customer list, **Product Manager** (add/edit/hide products, specs, photo upload to Supabase Storage), quotation builder with per-line discount, freight (+GST), payment & delivery terms, editable/removable lines, *Save as new revision*, WhatsApp + Email buttons.
 
-### Initial catalogue import SQL
-For an initial import, run `catalogue_seed.sql` once after the V3 migration. It upserts all 285 existing products by ID. Product manager edits are stored in Supabase, and the public catalogue automatically prefers active Supabase products when rows exist, otherwise it falls back to `products.json`.
+## Upgrading from v2
+1. Re-run the **whole** `supabase_schema.sql` in the Supabase SQL Editor (safe to re-run; the v3 block is at the bottom).
+2. Deploy the new files. Open `/admin` → **Products** → *Import catalogue from products.json* (one click). From then on the website reads products from the database; `products.json` stays as an automatic fallback.
+3. Replace `YOUR-DOMAIN.vercel.app` in `index.html`, `robots.txt` and `sitemap.xml`.
+4. Product photos in `/product` keep working; new uploads are stored in the `product-images` bucket.
 
-### Important rollout note
-The V3 product manager stores live products in Supabase, while the public catalogue continues to use `products.json` as a safe fallback until the initial product import and public live-catalogue cutover are completed. Quotation PDFs remain browser print-to-PDF (no server-side PDF dependency). Verify company GSTIN, terms, tax treatment and quote calculations with your accountant before issuing customer documents.
+Note: product ids in the database follow `products.json` order on first import, so existing customers' saved lists keep working.

@@ -16,7 +16,7 @@
 <header class="site"><div class="wrap nav">
 <a class="brand" href="#home">VECTRA <span>ENTERPRISES</span></a>
 <button class="burger" id="burger" aria-expanded="false" aria-controls="nav">Menu</button>
-<nav class="navlinks" id="nav" aria-label="Main"><a href="#catalog">Catalogue</a><a href="#how">How it works</a><a href="#about">About</a><a href="#contact">Contact</a>
+<nav class="navlinks" id="nav" aria-label="Main"><a href="#categories">Categories</a><a href="#catalog">Catalogue</a><a href="#bulk">Bulk enquiry</a><a href="#track">Track quotation</a><a href="#about">About</a><a href="#contact">Contact</a>
 <button class="btn ghost" id="openAdmin" type="button">Staff Login</button><button class="btn cartbtn" id="openCart" type="button">Quotation list <span class="badge" id="badge">0</span></button></nav>
 </div></header>
 <main id="home">
@@ -25,15 +25,22 @@
 <p>Industrial tools, machinery, valves, welding, safety and MRO supplies. Pick what you need, and get an item-wise GST quotation from our team.</p>
 <div class="cta"><a class="btn" href="#catalog">Browse catalogue</a><a class="btn outline" href="https://wa.me/917597577129?text=Hello%20Vectra%20Enterprises%2C%20I%20have%20a%20product%20enquiry." target="_blank" rel="noopener">WhatsApp us</a></div></div></section>
 <div class="trust"><div><strong id="nProd">270+</strong><small>PRODUCTS</small></div><div><strong id="nCat">14</strong><small>CATEGORIES</small></div><div><strong>GST</strong><small>INVOICED QUOTES</small></div><div><strong>Vadodara</strong><small>GUJARAT, INDIA</small></div></div>
+<section id="categories"><div class="wrap"><div class="kicker">SHOP BY CATEGORY</div><h2 class="heading">Everything for your site and workshop</h2><div class="catcards" id="catcards"></div></div></section>
+<section id="recent" hidden><div class="wrap"><div class="kicker">NEW IN CATALOGUE</div><h2 class="heading">Recently added</h2><div class="recent" id="recentRow"></div></div></section>
 <section id="how"><div class="wrap"><div class="kicker">SIMPLE PROCESS</div><h2 class="heading">Get a quotation in 3 steps</h2>
 <div class="how"><div><b>1</b><strong>Add products</strong><p>Browse or search the catalogue and add items with quantities.</p></div><div><b>2</b><strong>Send your details</strong><p>Open your quotation list, enter contact details and submit. No account needed.</p></div><div><b>3</b><strong>Receive your quote</strong><p>We reply with item-wise rates, GST and final amount.</p></div></div></div></section>
 <section class="catalog" id="catalog"><div class="wrap">
 <div class="chead"><div><div class="kicker">PRODUCT RANGE</div><h2 class="heading">Product Catalogue</h2><p class="intro">Search by product name or filter by category. Images are representative; confirm specifications with us.</p></div>
-<input id="search" class="search" type="search" placeholder="Search products…" aria-label="Search products"></div>
+<div class="row2"><input id="search" class="search" type="search" placeholder="Search name, brand, spec…" aria-label="Search products"><select id="sort" class="sel" aria-label="Sort"><option value="">Default order</option><option value="az">A → Z</option><option value="new">Newest first</option></select></div></div>
 <div id="filters" class="filters" role="group" aria-label="Categories"></div>
 <p class="meta">Can’t find a product? <button type="button" class="linkbtn" id="openCustom">Add it manually to your quotation list</button></p>
 <div class="meta" id="count" aria-live="polite">Loading catalogue…</div>
 <div id="grid" class="grid"></div><button class="btn ghost more" id="more" hidden>Show more products</button></div></section>
+<section id="bulk" class="bulk"><div class="wrap"><div class="kicker">FOR PROCUREMENT TEAMS</div><h2 class="heading">Bulk enquiry in one go</h2><p class="intro">Paste your list or upload an Excel/CSV file (columns: product, quantity, size, make). We match what we stock and add the rest as custom items.</p>
+<div class="bgrid"><div><textarea id="bText" rows="7" placeholder="Angle grinder, 5, 4 inch, Bosch&#10;Rotary hammer x 2&#10;Safety helmet 50"></textarea><div class="brow"><label class="btn ghost" for="bFile">Upload Excel / CSV</label><input id="bFile" type="file" accept=".xlsx,.xls,.csv,.txt" hidden><button class="btn" id="bParse" type="button">Match items</button><button class="linkbtn" id="bTpl" type="button">Download template</button></div></div><div id="bOut" class="bout" aria-live="polite"></div></div></div></section>
+<section id="track" class="track"><div class="wrap"><div class="kicker">ALREADY SENT A REQUEST?</div><h2 class="heading">Track your quotation</h2>
+<div class="trow"><input id="tRef" placeholder="Reference e.g. 3F9A12BC" maxlength="12" style="text-transform:uppercase" aria-label="Reference"><input id="tPhone" type="tel" placeholder="Mobile number used" maxlength="20" aria-label="Mobile number"><button class="btn" id="tGo" type="button">Check status</button></div><div id="tOut" class="tout" aria-live="polite"></div></div></section>
+<section id="why"><div class="wrap"><div class="kicker">WHY VECTRA</div><h2 class="heading">Built for industrial buyers</h2><div class="whyg"><div><b>Wide range</b><p>Power tools, valves, welding, PPE, pumps and MRO under one roof.</p></div><div><b>GST-ready quotes</b><p>Item-wise HSN, CGST/SGST/IGST and clear payment &amp; delivery terms.</p></div><div><b>Fast response</b><p>Send a list once; track status and accept online.</p></div><div><b>Custom sourcing</b><p>Not listed? Add it manually and we will source it for you.</p></div></div></div></section>
 <section id="about"><div class="wrap"><div class="kicker">ABOUT VECTRA</div><h2 class="heading">Your Industrial Supply Partner</h2>
 <p class="intro">Vectra Enterprises serves industrial and infrastructure requirements with tools, hardware, electrical goods, fittings, pumps, valves, welding equipment and safety products.</p>
 <div class="inds"><div>Hydrocarbon &amp; Oil Field</div><div>Solar &amp; Wind Energy</div><div>Mining &amp; Infrastructure</div></div></div></section>
@@ -58,7 +65,6 @@
 <label class="field">Mobile number *<input id="fPhone" type="tel" inputmode="tel" autocomplete="tel" maxlength="20" placeholder="10-digit mobile" required></label>
 <label class="field">Email (optional)<input id="fEmail" type="email" autocomplete="email" maxlength="160"></label>
 <label class="field">GSTIN (optional)<input id="fGst" maxlength="15" placeholder="24ABCDE1234F1Z5" style="text-transform:uppercase"></label>
-<label class="field">Bulk enquiry (Excel)<input id="bulkFile" type="file" accept=".xlsx,.xls,.csv"><small class="meta">Optional: upload a spreadsheet with columns Product, Quantity, Size, Make and Description.</small></label>
 <label class="field">Requirement / delivery location<textarea id="fNotes" rows="3" maxlength="1500" placeholder="Specifications, brand, delivery city…"></textarea></label>
 <input class="hp" id="fWeb" tabindex="-1" autocomplete="off" aria-hidden="true">
 <div class="msg" id="msg" aria-live="polite"></div></form></div>
@@ -81,14 +87,18 @@ body.admin-open{overflow:hidden}
 </style>
 <script>
 (()=>{const open=document.getElementById("openAdmin"),close=document.getElementById("closeAdmin"),modal=document.getElementById("adminModal"),scrim=document.getElementById("adminScrim"),frame=document.getElementById("adminFrame");
-function show(){modal.hidden=false;scrim.hidden=false;document.body.classList.add("admin-open");if(frame.src==="about:blank")frame.src="https://vectra-enterprises.vercel.app/admin?embedded=1";close.focus()}
+function show(){modal.hidden=false;scrim.hidden=false;document.body.classList.add("admin-open");if(frame.src==="about:blank")frame.src="/admin?embedded=1";close.focus()}
 function hide(){modal.hidden=true;scrim.hidden=true;document.body.classList.remove("admin-open");open?.focus()}
 open?.addEventListener("click",show);close?.addEventListener("click",hide);scrim?.addEventListener("click",hide);
 document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!modal.hidden)hide()});
 })();
 </script>
+<div class="pm-scrim" id="pmScrim" hidden></div><section class="pm" id="pm" role="dialog" aria-modal="true" aria-labelledby="pmName" hidden><button class="x pmx" id="pmClose" aria-label="Close">×</button><div class="pmg"><div class="pmimg"><img id="pmImg" alt=""></div><div><div class="cat" id="pmCat"></div><h2 id="pmName"></h2><p id="pmBrand" class="meta"></p><p id="pmDesc"></p><table class="spec" id="pmSpec"></table>
+<div class="cfg"><label class="dl">Size / specification<input id="pmSize" maxlength="60"></label><label class="dl">Make / brand<input id="pmMake" maxlength="60"></label><label class="dl">Quantity<input id="pmQty" type="number" min="1" max="9999" value="1"></label><label class="dl">Other info<input id="pmNote" maxlength="200"></label></div>
+<div class="pmact"><button class="btn" id="pmAdd" type="button">Add to quotation list</button><a class="btn wa" id="pmWa" target="_blank" rel="noopener">Ask on WhatsApp</a></div></div></div><h3 class="relh">Related products</h3><div class="recent" id="pmRel"></div></section>
 <div class="toast" id="toast" role="status"></div>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script><script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 <script src="config.js"></script>
 <script src="app.js"></script>
+<script src="extras.js"></script>
 </body></html>

@@ -4,24 +4,29 @@ const $=id=>document.getElementById(id),PAGE=24,KEY="vectra_cart_v2",CKEY="vectr
 const cfg=window.VECTRA_SUPABASE_CONFIG||{};
 const ok=cfg.url&&cfg.anonKey&&!/YOUR_/.test(cfg.url+cfg.anonKey);
 const db=ok&&window.supabase?window.supabase.createClient(cfg.url,cfg.anonKey):null;
-let P=[],cats=[],cat="All",q="",shown=PAGE,cart=load(KEY,[]);
+let P=[],cats=[],cat="All",q="",sortMode="",shown=PAGE,cart=load(KEY,[]);
 function load(k,d){try{return JSON.parse(localStorage.getItem(k))||d}catch{return d}}
 function save(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch{}}
 const toast=t=>{const e=$("toast");e.textContent=t;e.classList.add("on");clearTimeout(toast.t);toast.t=setTimeout(()=>e.classList.remove("on"),1800)};
 const el=(t,c,x)=>{const e=document.createElement(t);if(c)e.className=c;if(x!=null)e.textContent=x;return e};
-const img=p=>"product/"+p.i;
+const img=p=>/^https?:/.test(p.i||"")?p.i:"product/"+p.i;
 const F=[["size","Size / specification","e.g. 4 inch, 1.5 HP, 25 mm"],["make","Make / brand","e.g. Bosch, Kirloskar"],["note","Other info","Any extra detail"]];
 function fields(o,on){const w=el("div","dfields");F.forEach(([k,l,ph])=>{const lb=el("label","dl",l),i=el("input");i.maxLength=k==="note"?200:60;i.placeholder=ph;i.value=o[k]||"";i.oninput=()=>{o[k]=i.value;on&&on()};lb.appendChild(i);w.appendChild(lb)});return w}
 const spec=x=>[x.size&&"Size: "+x.size,x.make&&"Make: "+x.make,x.note].filter(Boolean).join(", ");
 
-fetch("products.json").then(r=>r.json()).then(async d=>{P=d.products;cats=d.categories;if(db){try{const live=await db.from("products").select("id,name,category,image,description,brand,model,specifications").eq("active",true).order("id");if(!live.error&&live.data&&live.data.length){P=live.data.map(x=>({id:x.id,n:x.name,c:x.category,i:x.image||"",description:x.description||"",brand:x.brand||"",model:x.model||"",specifications:x.specifications||{}}));cats=[...new Set(P.map(x=>x.c))].sort()}}catch(e){console.warn("Using bundled catalogue fallback",e)}}$("nProd").textContent=P.length;$("nCat").textContent=cats.length;chips();render();drawCart()})
+async function loadCatalogue(){
+ if(db){try{const{data,error}=await db.from("products").select("*").eq("active",true).order("id");
+  if(!error&&data&&data.length)return{products:data.map(p=>({id:p.id,n:p.name,c:p.category,i:p.image,b:p.brand,d:p.description,s:p.specs||[]})),categories:[...new Set(data.map(p=>p.category))]}}catch{}}
+ return(await fetch("products.json")).json()}
+loadCatalogue().then(d=>{P=d.products;cats=d.categories;$("nProd").textContent=P.length;$("nCat").textContent=cats.length;chips();render();drawCart();window.dispatchEvent(new Event("vectra:ready"))})
 .catch(()=>{$("count").textContent="Could not load the catalogue. Please refresh or contact us on WhatsApp."});
 $("year").textContent=new Date().getFullYear();
 
 function chips(){const f=$("filters");f.innerHTML="";["All",...cats].forEach(c=>{const b=el("button","chip",c);b.type="button";b.setAttribute("aria-pressed",c===cat);b.onclick=()=>{cat=c;shown=PAGE;chips();render()};f.appendChild(b)})}
 function render(){
  const words=q.toLowerCase().split(/\s+/).filter(Boolean);
- const r=P.filter(p=>(cat==="All"||p.c===cat)&&words.every(w=>(p.n+" "+p.c).toLowerCase().includes(w)));
+ const r=P.filter(p=>(cat==="All"||p.c===cat)&&words.every(w=>(p.n+" "+p.c+" "+(p.b||"")+" "+(p.d||"")).toLowerCase().includes(w)));
+ if(sortMode==="az")r.sort((x,y)=>x.n.localeCompare(y.n));else if(sortMode==="new")r.sort((x,y)=>y.id-x.id);
  $("count").textContent=r.length?`Showing ${Math.min(shown,r.length)} of ${r.length} products`:"";
  const g=$("grid");g.innerHTML="";
  if(!r.length){const e=el("div","empty","No products match. You can add it to your list manually and we will quote it. "),b=el("button","btn ghost",q?`Add “${q}” manually`:"Add a custom item");b.type="button";b.onclick=()=>openCustom(q);e.appendChild(b);g.appendChild(e);$("more").hidden=true;return}
@@ -32,17 +37,16 @@ function render(){
   const b=el("div","cb"),a=el("div","act"),qt=el("input","qty");qt.type="number";qt.min=1;qt.max=9999;qt.value=1;qt.setAttribute("aria-label","Quantity for "+p.n);
   const ad=el("button","add","Add to list");ad.type="button";
   ad.onclick=()=>{add(p.id,Math.min(9999,Math.max(1,parseInt(qt.value,10)||1)),d);d.size=d.make=d.note="";dt.querySelectorAll("input").forEach(i=>i.value="");dt.open=false;ad.textContent="Added ✓";ad.classList.add("done");setTimeout(()=>{ad.textContent="Add to list";ad.classList.remove("done")},1200)};
-  a.append(qt,ad);b.append(el("div","cat",p.c),el("h3","",p.n));if(p.brand||p.model)b.append(el("div","meta",[p.brand,p.model].filter(Boolean).join(" · ")));if(p.description)b.append(el("p","pdesc",p.description));b.append(dt,a);c.append(ph,b);fr.appendChild(c)});
+  a.append(qt,ad);const dv=el("button","linkbtn","View details");dv.type="button";dv.dataset.det=p.id;b.append(el("div","cat",p.c),el("h3","",p.n),dv,dt,a);c.dataset.id=p.id;c.append(ph,b);fr.appendChild(c)});
  g.appendChild(fr);$("more").hidden=r.length<=shown;
 }
 let t;$("search").addEventListener("input",e=>{clearTimeout(t);t=setTimeout(()=>{q=e.target.value.trim();shown=PAGE;render()},150)});
 $("more").onclick=()=>{shown+=PAGE;render()};
+$("sort")&&($("sort").onchange=e=>{sortMode=e.target.value;shown=PAGE;render()});
 
 function add(id,n,d={}){if(cart.length>=60)return toast("List is full (60 items max)");const nd={size:(d.size||"").trim(),make:(d.make||"").trim(),note:(d.note||"").trim()},k=x=>[x.size,x.make,x.note].map(s=>(s||"").trim().toLowerCase()).join("|");
  const x=cart.find(i=>i.id===id&&k(i)===k(nd));x?x.q=Math.min(9999,x.q+n):cart.push({id,q:n,...nd});persist();toast("Added to quotation list")}
 const PH="data:image/svg+xml,"+encodeURIComponent("<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 46 46'><rect width='46' height='46' fill='#eef1f5'/><text x='23' y='31' font-size='22' text-anchor='middle'>✎</text></svg>");
-function importBulk(file){if(!file)return;if(!window.XLSX)return toast("Spreadsheet reader could not load. Please try CSV.");const reader=new FileReader();reader.onload=()=>{try{const wb=XLSX.read(reader.result,{type:"array"}),rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{defval:""});let count=0;rows.slice(0,100).forEach(r=>{const norm={};Object.keys(r).forEach(k=>norm[k.toLowerCase().trim()]=r[k]);const name=String(norm.product||norm.name||norm["product name"]||norm.item||"").trim();if(!name)return;const found=P.find(p=>p.n.toLowerCase()===name.toLowerCase());const q=Math.max(1,Math.min(9999,parseInt(norm.quantity||norm.qty||1,10)||1));if(cart.length>=60)return;cart.push(found?{id:found.id,q,size:String(norm.size||norm.specification||""),make:String(norm.make||norm.brand||""),note:String(norm.description||norm.note||"")}:{custom:true,name,q,size:String(norm.size||norm.specification||""),make:String(norm.make||norm.brand||""),note:String(norm.description||norm.note||"")});count++});persist();toast(count+" spreadsheet item(s) added")}catch(e){toast("Could not read spreadsheet. Check the first sheet and column names.")}};reader.readAsArrayBuffer(file)}
-$("bulkFile")?.addEventListener("change",e=>importBulk(e.target.files[0]));
 function addCustom(){const n=$("cName").value.trim();if(!n){$("cName").focus();return toast("Enter the product name")}
  if(cart.length>=60)return toast("List is full (60 items max)");
  cart.push({custom:true,name:n,q:Math.min(9999,Math.max(1,parseInt($("cQty").value,10)||1)),size:$("cSize").value.trim(),make:$("cMake").value.trim(),note:$("cNote").value.trim()});
@@ -98,8 +102,12 @@ $("submit").onclick=async()=>{
  btn.disabled=false;btn.textContent="Submit request";
  if(error){msg("Could not submit online. Please try again, or send it on WhatsApp.",1);console.error(error);return}
  localStorage.setItem("vectra_last",Date.now());
- const ref=id.slice(0,8).toUpperCase();cart=[];persist();$("fNotes").value="";msg("");
- const box=el("div","ok-box");box.append(el("strong","","Request received ✓"),el("p","","Reference: "+ref+". Our team will contact you on "+phone+"."));
+ const ref=id.slice(0,8).toUpperCase();try{localStorage.setItem("vectra_ref",JSON.stringify({r:ref,p:phone}))}catch{}cart=[];persist();$("fNotes").value="";msg("");
+ const box=el("div","ok-box");box.append(el("strong","","Request received ✓"),el("p","","Reference: "+ref+". Our team will contact you on "+phone+". You can check the status anytime under “Track quotation” on this site."));
  const b=el("a","btn wa","Also notify us on WhatsApp");b.href=wa(ref);b.target="_blank";b.rel="noopener";box.appendChild(b);$("msg").appendChild(box);
 };
+
+window.Vectra={get P(){return P},get cats(){return cats},db,img,toast,el,add,openCustom,
+ addRaw(i){if(cart.length>=60)return false;cart.push(i);persist();return true},
+ setCat(c){cat=c;q="";if($("search"))$("search").value="";shown=PAGE;chips();render();$("catalog").scrollIntoView()},openCart:open};
 })();
