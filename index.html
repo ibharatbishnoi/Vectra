@@ -7,8 +7,6 @@
 <link rel="canonical" href="https://YOUR-DOMAIN.vercel.app/">
 <meta property="og:title" content="Vectra Enterprises — Industrial • Energy • MRO"><meta property="og:description" content="Industrial tools, valves, welding, PPE and MRO supplies. Request a quotation online."><meta property="og:type" content="website">
 <meta name="theme-color" content="#101b2a">
-<link rel="icon" type="image/png" sizes="96x96" href="favicon.png">
-<link rel="shortcut icon" href="favicon.ico">
 <link rel="stylesheet" href="styles.css">
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"LocalBusiness","name":"Vectra Enterprises","telephone":"+917597577129","email":"vectra2029@yahoo.com","address":{"@type":"PostalAddress","streetAddress":"First Floor, Shop No. 135 Wing, Opp. Kataria Show Room, Makarpura","addressLocality":"Vadodara","addressRegion":"Gujarat","postalCode":"390014","addressCountry":"IN"}}</script>
 </head>
@@ -60,6 +58,7 @@
 <label class="field">Mobile number *<input id="fPhone" type="tel" inputmode="tel" autocomplete="tel" maxlength="20" placeholder="10-digit mobile" required></label>
 <label class="field">Email (optional)<input id="fEmail" type="email" autocomplete="email" maxlength="160"></label>
 <label class="field">GSTIN (optional)<input id="fGst" maxlength="15" placeholder="24ABCDE1234F1Z5" style="text-transform:uppercase"></label>
+<label class="field">Bulk enquiry (Excel)<input id="bulkFile" type="file" accept=".xlsx,.xls,.csv"><small class="meta">Optional: upload a spreadsheet with columns Product, Quantity, Size, Make and Description.</small></label>
 <label class="field">Requirement / delivery location<textarea id="fNotes" rows="3" maxlength="1500" placeholder="Specifications, brand, delivery city…"></textarea></label>
 <input class="hp" id="fWeb" tabindex="-1" autocomplete="off" aria-hidden="true">
 <div class="msg" id="msg" aria-live="polite"></div></form></div>
@@ -89,7 +88,7 @@ document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!modal.hidden)hide(
 })();
 </script>
 <div class="toast" id="toast" role="status"></div>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script><script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="config.js"></script>
 <script src="app.js"></script>
 </body></html>

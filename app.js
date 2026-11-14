@@ -14,7 +14,7 @@ const F=[["size","Size / specification","e.g. 4 inch, 1.5 HP, 25 mm"],["make","M
 function fields(o,on){const w=el("div","dfields");F.forEach(([k,l,ph])=>{const lb=el("label","dl",l),i=el("input");i.maxLength=k==="note"?200:60;i.placeholder=ph;i.value=o[k]||"";i.oninput=()=>{o[k]=i.value;on&&on()};lb.appendChild(i);w.appendChild(lb)});return w}
 const spec=x=>[x.size&&"Size: "+x.size,x.make&&"Make: "+x.make,x.note].filter(Boolean).join(", ");
 
-fetch("products.json").then(r=>r.json()).then(d=>{P=d.products;cats=d.categories;$("nProd").textContent=P.length;$("nCat").textContent=cats.length;chips();render();drawCart()})
+fetch("products.json").then(r=>r.json()).then(async d=>{P=d.products;cats=d.categories;if(db){try{const live=await db.from("products").select("id,name,category,image,description,brand,model,specifications").eq("active",true).order("id");if(!live.error&&live.data&&live.data.length){P=live.data.map(x=>({id:x.id,n:x.name,c:x.category,i:x.image||"",description:x.description||"",brand:x.brand||"",model:x.model||"",specifications:x.specifications||{}}));cats=[...new Set(P.map(x=>x.c))].sort()}}catch(e){console.warn("Using bundled catalogue fallback",e)}}$("nProd").textContent=P.length;$("nCat").textContent=cats.length;chips();render();drawCart()})
 .catch(()=>{$("count").textContent="Could not load the catalogue. Please refresh or contact us on WhatsApp."});
 $("year").textContent=new Date().getFullYear();
 
@@ -32,7 +32,7 @@ function render(){
   const b=el("div","cb"),a=el("div","act"),qt=el("input","qty");qt.type="number";qt.min=1;qt.max=9999;qt.value=1;qt.setAttribute("aria-label","Quantity for "+p.n);
   const ad=el("button","add","Add to list");ad.type="button";
   ad.onclick=()=>{add(p.id,Math.min(9999,Math.max(1,parseInt(qt.value,10)||1)),d);d.size=d.make=d.note="";dt.querySelectorAll("input").forEach(i=>i.value="");dt.open=false;ad.textContent="Added ✓";ad.classList.add("done");setTimeout(()=>{ad.textContent="Add to list";ad.classList.remove("done")},1200)};
-  a.append(qt,ad);b.append(el("div","cat",p.c),el("h3","",p.n),dt,a);c.append(ph,b);fr.appendChild(c)});
+  a.append(qt,ad);b.append(el("div","cat",p.c),el("h3","",p.n));if(p.brand||p.model)b.append(el("div","meta",[p.brand,p.model].filter(Boolean).join(" · ")));if(p.description)b.append(el("p","pdesc",p.description));b.append(dt,a);c.append(ph,b);fr.appendChild(c)});
  g.appendChild(fr);$("more").hidden=r.length<=shown;
 }
 let t;$("search").addEventListener("input",e=>{clearTimeout(t);t=setTimeout(()=>{q=e.target.value.trim();shown=PAGE;render()},150)});
@@ -41,6 +41,8 @@ $("more").onclick=()=>{shown+=PAGE;render()};
 function add(id,n,d={}){if(cart.length>=60)return toast("List is full (60 items max)");const nd={size:(d.size||"").trim(),make:(d.make||"").trim(),note:(d.note||"").trim()},k=x=>[x.size,x.make,x.note].map(s=>(s||"").trim().toLowerCase()).join("|");
  const x=cart.find(i=>i.id===id&&k(i)===k(nd));x?x.q=Math.min(9999,x.q+n):cart.push({id,q:n,...nd});persist();toast("Added to quotation list")}
 const PH="data:image/svg+xml,"+encodeURIComponent("<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 46 46'><rect width='46' height='46' fill='#eef1f5'/><text x='23' y='31' font-size='22' text-anchor='middle'>✎</text></svg>");
+function importBulk(file){if(!file)return;if(!window.XLSX)return toast("Spreadsheet reader could not load. Please try CSV.");const reader=new FileReader();reader.onload=()=>{try{const wb=XLSX.read(reader.result,{type:"array"}),rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{defval:""});let count=0;rows.slice(0,100).forEach(r=>{const norm={};Object.keys(r).forEach(k=>norm[k.toLowerCase().trim()]=r[k]);const name=String(norm.product||norm.name||norm["product name"]||norm.item||"").trim();if(!name)return;const found=P.find(p=>p.n.toLowerCase()===name.toLowerCase());const q=Math.max(1,Math.min(9999,parseInt(norm.quantity||norm.qty||1,10)||1));if(cart.length>=60)return;cart.push(found?{id:found.id,q,size:String(norm.size||norm.specification||""),make:String(norm.make||norm.brand||""),note:String(norm.description||norm.note||"")}:{custom:true,name,q,size:String(norm.size||norm.specification||""),make:String(norm.make||norm.brand||""),note:String(norm.description||norm.note||"")});count++});persist();toast(count+" spreadsheet item(s) added")}catch(e){toast("Could not read spreadsheet. Check the first sheet and column names.")}};reader.readAsArrayBuffer(file)}
+$("bulkFile")?.addEventListener("change",e=>importBulk(e.target.files[0]));
 function addCustom(){const n=$("cName").value.trim();if(!n){$("cName").focus();return toast("Enter the product name")}
  if(cart.length>=60)return toast("List is full (60 items max)");
  cart.push({custom:true,name:n,q:Math.min(9999,Math.max(1,parseInt($("cQty").value,10)||1)),size:$("cSize").value.trim(),make:$("cMake").value.trim(),note:$("cNote").value.trim()});

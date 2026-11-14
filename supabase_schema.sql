@@ -146,3 +146,67 @@ begin
 end $$;
 revoke all on function public.next_quote_number() from public, anon;
 grant execute on function public.next_quote_number() to authenticated;
+
+
+-- ---------- V3: catalogue, customer CRM and follow-ups ----------
+create table if not exists public.products (
+  id bigint primary key, name text not null, category text not null, image text,
+  description text, brand text, model text, specifications jsonb not null default '{}'::jsonb,
+  active boolean not null default true, updated_at timestamptz not null default now()
+);
+create table if not exists public.customers (
+  id uuid primary key default gen_random_uuid(), name text not null, phone text not null,
+  email text, gstin text, company text, billing_address text, shipping_address text,
+  notes text, created_at timestamptz not null default now(), updated_at timestamptz not null default now(),
+  unique(phone)
+);
+create table if not exists public.followups (
+  id uuid primary key default gen_random_uuid(), customer_id uuid references public.customers(id) on delete cascade,
+  request_id uuid references public.quotation_requests(id) on delete set null,
+  due_at timestamptz not null, note text not null, status text not null default 'open' check(status in ('open','done','cancelled')),
+  assigned_to uuid references auth.users(id), created_by uuid references auth.users(id), created_at timestamptz not null default now()
+);
+create index if not exists customers_name_idx on public.customers(name);
+create index if not exists followups_due_idx on public.followups(due_at) where status='open';
+create index if not exists products_category_idx on public.products(category);
+alter table public.products enable row level security;
+alter table public.customers enable row level security;
+alter table public.followups enable row level security;
+drop policy if exists "Public can read active products" on public.products;
+create policy "Public can read active products" on public.products for select to anon, authenticated using (active or public.is_vectra_admin());
+drop policy if exists "Admins manage products" on public.products;
+create policy "Admins manage products" on public.products for all to authenticated using (public.is_vectra_admin()) with check (public.is_vectra_admin());
+drop policy if exists "Admins manage customers" on public.customers;
+create policy "Admins manage customers" on public.customers for all to authenticated using (public.is_vectra_admin()) with check (public.is_vectra_admin());
+drop policy if exists "Admins manage followups" on public.followups;
+create policy "Admins manage followups" on public.followups for all to authenticated using (public.is_vectra_admin()) with check (public.is_vectra_admin());
+grant select on public.products to anon, authenticated;
+grant insert, update, delete on public.products to authenticated;
+grant select, insert, update, delete on public.customers, public.followups to authenticated;
+
+-- Keep customer records in sync whenever a public enquiry arrives.
+create or replace function public.sync_vectra_customer() returns trigger language plpgsql security definer set search_path=public as $$
+begin
+  insert into public.customers(name,phone,email,gstin,notes)
+  values(new.customer_name,new.customer_phone,new.customer_email,new.customer_gstin,new.customer_notes)
+  on conflict(phone) do update set name=excluded.name, email=coalesce(excluded.email,customers.email),
+    gstin=coalesce(excluded.gstin,customers.gstin), notes=coalesce(excluded.notes,customers.notes), updated_at=now();
+  return new;
+end $$;
+drop trigger if exists trg_sync_vectra_customer on public.quotation_requests;
+create trigger trg_sync_vectra_customer after insert on public.quotation_requests for each row execute function public.sync_vectra_customer();
+
+-- Quotation commercial adjustments (amounts stored in INR).
+alter table public.quotations add column if not exists freight_amount numeric(14,2) not null default 0 check (freight_amount >= 0);
+alter table public.quotations add column if not exists discount_amount numeric(14,2) not null default 0 check (discount_amount >= 0);
+
+-- Anonymous visitors can evaluate the active-product read policy; the function
+-- returns false for anon because auth.uid() is null.
+grant execute on function public.is_vectra_admin() to anon;
+
+-- Backfill customers from enquiries already received before this migration.
+insert into public.customers(name,phone,email,gstin,notes)
+select distinct on (customer_phone) customer_name,customer_phone,customer_email,customer_gstin,customer_notes
+from public.quotation_requests order by customer_phone,created_at desc
+on conflict(phone) do update set name=excluded.name,email=coalesce(excluded.email,customers.email),
+  gstin=coalesce(excluded.gstin,customers.gstin),updated_at=now();
