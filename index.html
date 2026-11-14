@@ -17,7 +17,7 @@
 <a class="brand" href="#home">VECTRA <span>ENTERPRISES</span></a>
 <button class="burger" id="burger" aria-expanded="false" aria-controls="nav">Menu</button>
 <nav class="navlinks" id="nav" aria-label="Main"><a href="#catalog">Catalogue</a><a href="#how">How it works</a><a href="#about">About</a><a href="#contact">Contact</a>
-<button class="btn cartbtn" id="openCart" type="button">Quotation list <span class="badge" id="badge">0</span></button></nav>
+<button class="btn ghost" id="openAdmin" type="button">Staff Login</button><button class="btn cartbtn" id="openCart" type="button">Quotation list <span class="badge" id="badge">0</span></button></nav>
 </div></header>
 <main id="home">
 <section class="hero"><div class="wrap"><div class="eyebrow">INDUSTRIAL • ENERGY • MRO</div>
@@ -57,6 +57,29 @@
 <div class="msg" id="msg" aria-live="polite"></div></form></div>
 <div class="df"><button class="btn" id="submit" type="button">Submit request</button><button class="btn ghost" id="clear" type="button">Clear list</button></div>
 </aside>
+<div class="admin-scrim" id="adminScrim" hidden></div>
+<section class="admin-modal" id="adminModal" role="dialog" aria-modal="true" aria-label="Vectra staff login" hidden>
+  <div class="admin-modal-head"><strong>VECTRA STAFF PORTAL</strong><button type="button" id="closeAdmin" aria-label="Close staff portal">×</button></div>
+  <iframe id="adminFrame" title="Vectra staff login and quotation management" src="about:blank"></iframe>
+</section>
+<style>
+.admin-scrim{position:fixed;inset:0;background:rgba(8,16,28,.72);z-index:1000}
+.admin-modal{position:fixed;z-index:1001;inset:3vh 3vw;background:#f3f5f8;border-radius:14px;overflow:hidden;box-shadow:0 24px 80px rgba(0,0,0,.35);display:flex;flex-direction:column}
+.admin-modal[hidden],.admin-scrim[hidden]{display:none}
+.admin-modal-head{height:52px;flex:0 0 52px;background:#fff;border-bottom:1px solid #dce2e9;display:flex;align-items:center;justify-content:space-between;padding:0 18px;font-weight:900;letter-spacing:.04em}
+.admin-modal-head button{border:0;background:#eef1f5;border-radius:8px;width:34px;height:34px;font-size:24px;cursor:pointer}
+.admin-modal iframe{width:100%;height:calc(100% - 52px);border:0;background:#f3f5f8}
+body.admin-open{overflow:hidden}
+@media(max-width:640px){.admin-modal{inset:0;border-radius:0}.admin-modal-head{height:48px;flex-basis:48px}}
+</style>
+<script>
+(()=>{const open=document.getElementById("openAdmin"),close=document.getElementById("closeAdmin"),modal=document.getElementById("adminModal"),scrim=document.getElementById("adminScrim"),frame=document.getElementById("adminFrame");
+function show(){modal.hidden=false;scrim.hidden=false;document.body.classList.add("admin-open");if(frame.src==="about:blank")frame.src="admin.html?embedded=1";close.focus()}
+function hide(){modal.hidden=true;scrim.hidden=true;document.body.classList.remove("admin-open");open?.focus()}
+open?.addEventListener("click",show);close?.addEventListener("click",hide);scrim?.addEventListener("click",hide);
+document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!modal.hidden)hide()});
+})();
+</script>
 <div class="toast" id="toast" role="status"></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 <script src="config.js"></script>

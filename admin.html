@@ -12,6 +12,11 @@ table.l{width:100%;border-collapse:collapse;font-size:13px}table.l th,table.l td
 .tot{margin-left:auto;width:min(320px,100%);line-height:1.9}.tot div{display:flex;justify-content:space-between}.tot .g{font-size:18px;font-weight:800;border-top:2px solid var(--ink);margin-top:4px}
 #printArea{display:none}
 @media print{body>*:not(#printArea){display:none!important}#printArea{display:block!important;font:13px Arial;color:#182230;background:#fff}#printArea table{width:100%;border-collapse:collapse;margin-top:18px}#printArea th,#printArea td{border:1px solid #cfd6de;padding:7px;text-align:left}#printArea th{background:#f1f4f7}@page{margin:14mm}}
+ 
+html,body{min-height:100%;margin:0}
+body.embedded-admin{padding-bottom:18px}
+body.embedded-admin>header.site{display:none}
+body.embedded-admin .wrap{max-width:1180px}
 </style></head><body>
 <header class="site"><div class="wrap nav"><a class="brand" href="./">VECTRA <span>ADMIN</span></a><div class="row"><span id="who" class="meta"></span><a class="btn ghost" href="./">View site</a><button class="btn ghost" id="out" hidden>Sign out</button></div></div></header>
 <div class="wrap">
@@ -130,4 +135,4 @@ function drawSaved(){
 }
 boot();
 })();
-</script></body></html>
+</script><script>if(new URLSearchParams(location.search).has("embedded"))document.body.classList.add("embedded-admin");</script></body></html>
