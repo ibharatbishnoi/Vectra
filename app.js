@@ -24,7 +24,7 @@ function render(){
  const r=P.filter(p=>(cat==="All"||p.c===cat)&&words.every(w=>(p.n+" "+p.c).toLowerCase().includes(w)));
  $("count").textContent=r.length?`Showing ${Math.min(shown,r.length)} of ${r.length} products`:"";
  const g=$("grid");g.innerHTML="";
- if(!r.length){g.appendChild(el("div","empty","No products match. Try another word, or message us on WhatsApp — we can source items not listed here."));$("more").hidden=true;return}
+ if(!r.length){const e=el("div","empty","No products match. You can add it to your list manually and we will quote it. "),b=el("button","btn ghost",q?`Add “${q}” manually`:"Add a custom item");b.type="button";b.onclick=()=>openCustom(q);e.appendChild(b);g.appendChild(e);$("more").hidden=true;return}
  const fr=document.createDocumentFragment();
  r.slice(0,shown).forEach(p=>{
   const c=el("article","card"),ph=el("div","photo"),im=new Image();im.src=img(p);im.alt=p.n;im.loading="lazy";im.width=240;im.height=212;ph.appendChild(im);
@@ -38,19 +38,25 @@ function render(){
 let t;$("search").addEventListener("input",e=>{clearTimeout(t);t=setTimeout(()=>{q=e.target.value.trim();shown=PAGE;render()},150)});
 $("more").onclick=()=>{shown+=PAGE;render()};
 
-function add(id,n,d={}){const nd={size:(d.size||"").trim(),make:(d.make||"").trim(),note:(d.note||"").trim()},k=x=>[x.size,x.make,x.note].map(s=>(s||"").trim().toLowerCase()).join("|");
+function add(id,n,d={}){if(cart.length>=60)return toast("List is full (60 items max)");const nd={size:(d.size||"").trim(),make:(d.make||"").trim(),note:(d.note||"").trim()},k=x=>[x.size,x.make,x.note].map(s=>(s||"").trim().toLowerCase()).join("|");
  const x=cart.find(i=>i.id===id&&k(i)===k(nd));x?x.q=Math.min(9999,x.q+n):cart.push({id,q:n,...nd});persist();toast("Added to quotation list")}
+const PH="data:image/svg+xml,"+encodeURIComponent("<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 46 46'><rect width='46' height='46' fill='#eef1f5'/><text x='23' y='31' font-size='22' text-anchor='middle'>✎</text></svg>");
+function addCustom(){const n=$("cName").value.trim();if(!n){$("cName").focus();return toast("Enter the product name")}
+ if(cart.length>=60)return toast("List is full (60 items max)");
+ cart.push({custom:true,name:n,q:Math.min(9999,Math.max(1,parseInt($("cQty").value,10)||1)),size:$("cSize").value.trim(),make:$("cMake").value.trim(),note:$("cNote").value.trim()});
+ ["cName","cSize","cMake","cNote"].forEach(id=>$(id).value="");$("cQty").value=1;persist();toast("Custom item added")}
+function openCustom(name){open();$("custom").open=true;if(name)$("cName").value=name;$("cName").focus()}
 function persist(){save(KEY,cart);const n=cart.length;$("badge").textContent=n;drawCart()}
 function drawCart(){
  const L=$("lines");L.innerHTML="";
- const rows=cart.map(i=>({i,p:P.find(p=>p.id===i.id)})).filter(r=>r.p);
+ const rows=cart.map(i=>({i,p:i.custom?{n:i.name,c:"Custom item",i:null}:P.find(p=>p.id===i.id)})).filter(r=>r.p);
  if(!rows.length){L.appendChild(el("p","meta","Your list is empty. Add products from the catalogue."));return}
  rows.forEach(({i,p})=>{
-  const d=el("div","line"),im=new Image();im.src=img(p);im.alt="";
+  const d=el("div","line"),im=new Image();im.src=p.i?img(p):PH;im.alt="";
   const q=el("input","qty");q.type="number";q.min=1;q.max=9999;q.value=i.q;q.setAttribute("aria-label","Quantity for "+p.n);
   q.onchange=()=>{i.q=Math.min(9999,Math.max(1,parseInt(q.value,10)||1));save(KEY,cart)};
   const x=el("button","x","×");x.type="button";x.setAttribute("aria-label","Remove "+p.n);x.onclick=()=>{cart=cart.filter(c=>c!==i);persist()};
-  d.append(im,el("span","",p.n),q,x);
+  d.append(im,el("span","",i.custom?p.n+" (custom)":p.n),q,x);
   const dt=el("details","moredet");dt.open=!!(i.size||i.make||i.note);dt.append(el("summary","","Size / make / notes (optional)"),fields(i,()=>save(KEY,cart)));
   const w=el("div","litem");w.append(d,dt);L.appendChild(w)});
 }
@@ -60,7 +66,7 @@ persist();
 const dr=$("drawer"),sc=$("scrim");let last;
 function open(){last=document.activeElement;dr.classList.add("on");sc.classList.add("on");dr.setAttribute("aria-hidden","false");const c=load(CKEY,{});$("fName").value=$("fName").value||c.n||"";$("fPhone").value=$("fPhone").value||c.p||"";$("fEmail").value=$("fEmail").value||c.e||"";$("fGst").value=$("fGst").value||c.g||"";$("closeCart").focus();drawCart()}
 function close(){dr.classList.remove("on");sc.classList.remove("on");dr.setAttribute("aria-hidden","true");last&&last.focus()}
-$("openCart").onclick=open;$("closeCart").onclick=close;sc.onclick=close;
+$("openCart").onclick=open;$("cAdd").onclick=addCustom;$("openCustom").onclick=()=>openCustom();$("cName").addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();addCustom()}});$("closeCart").onclick=close;sc.onclick=close;
 document.addEventListener("keydown",e=>{if(e.key==="Escape"&&dr.classList.contains("on"))close()});
 $("burger").onclick=()=>{const n=$("nav").classList.toggle("on");$("burger").setAttribute("aria-expanded",n)};
 $("nav").addEventListener("click",e=>{if(e.target.tagName==="A")$("nav").classList.remove("on")});
@@ -79,7 +85,7 @@ $("submit").onclick=async()=>{
  if(e.fGst)return msg("GSTIN should be 15 characters, e.g. 24ABCDE1234F1Z5 — or leave it blank.",1);
  if($("fWeb").value)return;                       // honeypot: bots fill this
  if(Date.now()-(+localStorage.getItem("vectra_last")||0)<30000)return msg("Please wait a few seconds before sending another request.",1);
- const items=cart.map(i=>{const p=P.find(p=>p.id===i.id);return p&&{name:p.n,category:p.c,quantity:i.q,size:(i.size||"").trim(),make:(i.make||"").trim(),note:(i.note||"").trim()}}).filter(Boolean);
+ const items=cart.map(i=>{const p=i.custom?{n:i.name,c:"Custom (not in catalogue)"}:P.find(p=>p.id===i.id);return p&&{name:p.n,category:p.c,quantity:i.q,size:(i.size||"").trim(),make:(i.make||"").trim(),note:(i.note||"").trim()}}).filter(Boolean);
  const summary=items.map((x,n)=>`${n+1}. ${x.name} × ${x.quantity}${spec(x)?" ("+spec(x)+")":""}`).join("\n");
  save(CKEY,{n:name,p:phone,e:email,g:gst});
  const wa=ref=>"https://wa.me/917597577129?text="+encodeURIComponent(`Hello Vectra Enterprises, I have submitted a quotation request${ref?` (Ref ${ref})`:""}.\nName: ${name}\nPhone: ${phone}\n\n${summary}`);

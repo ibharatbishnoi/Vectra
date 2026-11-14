@@ -63,3 +63,6 @@ section{padding:60px 0}.heading{font-size:clamp(26px,4vw,36px);margin:8px 0}.int
 .dfields{display:grid;gap:6px;margin-top:6px}.dl{display:flex;flex-direction:column;gap:2px;font-size:11px;font-weight:700;color:var(--muted)}
 .dl input{padding:8px;border:1px solid #ccd4dd;border-radius:6px;font:inherit;font-size:13px;background:var(--card);color:var(--ink)}
 .litem{border-bottom:1px solid var(--line);padding-bottom:8px}.litem .line{border-bottom:0;padding-bottom:4px}.litem .moredet{padding-left:56px}
+.linkbtn{background:none;border:0;color:var(--red);font-weight:800;text-decoration:underline;padding:0;font-size:inherit}
+.custom{background:var(--bg);border:1px dashed #b9c3cf;border-radius:8px;padding:10px 12px;margin:14px 0}.custom summary{cursor:pointer;font-size:14px;color:var(--red)}
+.cfg{display:grid;grid-template-columns:1fr 90px;gap:8px;margin-top:10px}.cfg .full{grid-column:1/3}
