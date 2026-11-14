@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow"><title>Vectra Admin</title><link rel="stylesheet" href="styles.css">
+<style>
+body{background:var(--bg)}.box{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:18px;margin:16px 0}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}.row>*{min-width:0}
+input,select,textarea{padding:9px;border:1px solid #ccd4dd;border-radius:6px;font:inherit;background:var(--card);color:var(--ink)}
+.tabs button{border:0;background:none;padding:10px 14px;font-weight:800;border-bottom:3px solid transparent;color:var(--muted)}.tabs button[aria-selected=true]{color:var(--red);border-color:var(--red)}
+.req{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;border:1px solid var(--line);border-radius:8px;padding:12px;margin:8px 0}.req small{display:block;color:var(--muted)}
+.pill{font-size:11px;font-weight:800;padding:2px 9px;border-radius:20px;background:#eef1f5;color:#344253}.pill.pending{background:#fff1d6;color:#8a5a00}.pill.quoted,.pill.issued{background:#dcf3e6;color:#0d5a33}.pill.closed,.pill.rejected{background:#fde4e8;color:#8f1b2c}.pill.accepted{background:#d9e8ff;color:#1b4b9b}
+table.l{width:100%;border-collapse:collapse;font-size:13px}table.l th,table.l td{border:1px solid var(--line);padding:6px;text-align:left}table.l th{background:var(--bg)}table.l input,table.l select{width:100%;min-width:70px}
+.tot{margin-left:auto;width:min(320px,100%);line-height:1.9}.tot div{display:flex;justify-content:space-between}.tot .g{font-size:18px;font-weight:800;border-top:2px solid var(--ink);margin-top:4px}
+#printArea{display:none}
+@media print{body>*:not(#printArea){display:none!important}#printArea{display:block!important;font:13px Arial;color:#182230;background:#fff}#printArea table{width:100%;border-collapse:collapse;margin-top:18px}#printArea th,#printArea td{border:1px solid #cfd6de;padding:7px;text-align:left}#printArea th{background:#f1f4f7}@page{margin:14mm}}
+</style></head><body>
+<header class="site"><div class="wrap nav"><a class="brand" href="./">VECTRA <span>ADMIN</span></a><div class="row"><span id="who" class="meta"></span><a class="btn ghost" href="./">View site</a><button class="btn ghost" id="out" hidden>Sign out</button></div></div></header>
+<div class="wrap">
+<div id="login" class="box" style="max-width:420px;margin:40px auto"><h2>Staff sign in</h2><div class="field"><label for="em">Email</label><input id="em" type="email" autocomplete="username"></div><div class="field"><label for="pw">Password</label><input id="pw" type="password" autocomplete="current-password"></div><p><button class="btn" id="in">Sign in</button></p><div class="msg" id="lmsg" aria-live="polite"></div></div>
+<div id="app" hidden>
+<div class="tabs" role="tablist"><button role="tab" id="t1" aria-selected="true">Requests</button><button role="tab" id="t2" aria-selected="false">Saved quotations</button></div>
+<div id="v1"><div class="box"><div class="row"><input id="rs" type="search" placeholder="Search name / phone / ref" style="flex:1"><select id="rf"><option value="">All statuses</option><option>pending</option><option>quoted</option><option>closed</option></select><button class="btn ghost" id="rr">Refresh</button></div><p class="meta" id="rc"></p><div id="rl"></div></div>
+<div class="box" id="ed" hidden><h2 style="margin-top:0">Prepare quotation</h2><p id="cust" class="meta"></p>
+<div class="row"><label>Quote no.<br><input id="qn" readonly placeholder="auto-generated on save"></label><label>Date<br><input id="qd" type="date"></label><label>Valid until<br><input id="qv" type="date"></label><label>GST<br><select id="qg"><option value="intra">CGST + SGST (Gujarat)</option><option value="inter">IGST (interstate)</option></select></label><label>Request status<br><select id="rst"><option>pending</option><option>quoted</option><option>closed</option></select></label></div>
+<div style="overflow-x:auto;margin-top:14px"><table class="l"><thead><tr><th>Product</th><th>HSN/SAC</th><th>Qty</th><th>Rate ₹</th><th>GST %</th><th>Taxable ₹</th><th>GST ₹</th><th>Total ₹</th></tr></thead><tbody id="ql"></tbody></table></div>
+<div class="tot" id="tt"></div>
+<label class="field">Terms &amp; conditions<textarea id="qt" rows="3">Prices are exclusive of GST unless stated. GST will be charged at applicable rates. Delivery, freight and payment terms as mutually agreed.</textarea></label>
+<div class="row" style="margin-top:14px"><button class="btn" id="sv">Save quotation</button><button class="btn ghost" id="pr">Print / Save PDF</button><button class="btn wa" id="wa">Send on WhatsApp</button></div><div class="msg" id="qm" aria-live="polite"></div></div></div>
+<div id="v2" hidden><div class="box"><div id="ql2"></div></div></div>
+</div></div>
+<div id="printArea"></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script src="config.js"></script>
+<script>
+"use strict";
+(()=>{
+const $=id=>document.getElementById(id),cfg=window.VECTRA_SUPABASE_CONFIG||{};
+const db=cfg.url&&!/YOUR_/.test(cfg.url+cfg.anonKey)&&window.supabase?window.supabase.createClient(cfg.url,cfg.anonKey):null;
+const safe=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const inr=p=>(p/100).toLocaleString("en-IN",{minimumFractionDigits:2,maximumFractionDigits:2});
+const msg=(id,t,e)=>{const m=$(id);m.textContent=t;m.className="msg"+(e?" err":"")};
+let reqs=[],cur=null,items=[],editing=null,saved=[];
+/* ---- money in integer paise ---- */
+const line=x=>{const b=Math.round(x.quantity*x.rate*100),t=Math.round(b*x.gst_rate/100);return{b,t,s:b+t}};
+function totals(){let b=0,t=0;items.forEach(x=>{const l=line(x);b+=l.b;t+=l.t});return{b,t,g:b+t}}
+function words(n){const o="One Two Three Four Five Six Seven Eight Nine Ten Eleven Twelve Thirteen Fourteen Fifteen Sixteen Seventeen Eighteen Nineteen".split(" "),t="Twenty Thirty Forty Fifty Sixty Seventy Eighty Ninety".split(" ");
+ const w=n=>n<20?o[n-1]||"":n<100?t[Math.floor(n/10)-2]+(n%10?" "+o[n%10-1]:""):o[Math.floor(n/100)-1]+" Hundred"+(n%100?" "+w(n%100):"");
+ let r=Math.floor(n),s="";[[1e7,"Crore"],[1e5,"Lakh"],[1e3,"Thousand"]].forEach(([d,l])=>{if(r>=d){s+=w(Math.floor(r/d))+" "+l+" ";r%=d}});if(r)s+=w(r);return s.trim()||"Zero"}
+const inWords=p=>"Rupees "+words(Math.floor(p/100))+(p%100?" and "+words(p%100)+" Paise":"")+" Only";
+/* ---- auth ---- */
+if(!db)msg("lmsg","Supabase is not configured. Edit config.js.",1);
+async function boot(){if(!db)return;const{data}=await db.auth.getSession();show(data.session)}
+async function show(s){$("login").hidden=!!s;$("app").hidden=!s;$("out").hidden=!s;if(s){$("who").textContent=s.user.email;await load()}}
+$("in").onclick=async()=>{msg("lmsg","Signing in…");const{data,error}=await db.auth.signInWithPassword({email:$("em").value.trim(),password:$("pw").value});if(error)return msg("lmsg",error.message,1);msg("lmsg","");show(data.session)};
+$("pw").onkeydown=e=>{if(e.key==="Enter")$("in").click()};
+$("out").onclick=async()=>{await db.auth.signOut();cur=null;show(null)};
+/* ---- tabs ---- */
+function tab(n){[1,2].forEach(i=>{$("v"+i).hidden=i!==n;$("t"+i).setAttribute("aria-selected",i===n)})}
+$("t1").onclick=()=>tab(1);$("t2").onclick=()=>{tab(2);drawSaved()};
+/* ---- requests ---- */
+async function load(){
+ $("rl").innerHTML="<p>Loading…</p>";
+ const[a,b]=await Promise.all([db.from("quotation_requests").select("*").order("created_at",{ascending:false}).limit(300),db.from("quotations").select("*").order("created_at",{ascending:false}).limit(300)]);
+ if(a.error){$("rl").innerHTML='<p class="msg err">'+safe(a.error.message)+" — is this account listed in admin_users?</p>";return}
+ reqs=a.data;saved=b.data||[];drawReqs();
+}
+function drawReqs(){
+ const s=$("rs").value.toLowerCase().trim(),f=$("rf").value;
+ const r=reqs.filter(x=>(!f||x.status===f)&&(!s||(x.customer_name+x.customer_phone+x.id).toLowerCase().includes(s)));
+ const n=k=>reqs.filter(x=>x.status===k).length;
+ $("rc").textContent=`${r.length} shown · ${n("pending")} pending · ${n("quoted")} quoted · ${n("closed")} closed`;
+ $("rl").innerHTML=r.length?r.map(x=>`<div class="req"><div><strong>${safe(x.customer_name)}</strong> <span class="pill ${safe(x.status)}">${safe(x.status)}</span><small>${safe(x.customer_phone)} · ${safe(new Date(x.created_at).toLocaleString("en-IN"))} · ${x.items.length} item(s) · Ref ${safe(x.id.slice(0,8).toUpperCase())}</small></div><button class="btn ghost" data-o="${safe(x.id)}">Open</button></div>`).join(""):"<p>No requests found.</p>";
+ $("rl").querySelectorAll("[data-o]").forEach(b=>b.onclick=()=>openReq(b.dataset.o));
+}
+$("rs").oninput=drawReqs;$("rf").onchange=drawReqs;$("rr").onclick=load;
+function openReq(id,qid){
+ cur=reqs.find(x=>x.id===id);if(!cur)return;
+ const q=qid?saved.find(s=>s.id===qid):saved.find(s=>s.request_id===id);editing=q||null;
+ items=q?q.items.map(x=>({...x})):cur.items.map(x=>({name:x.name,category:x.category,quantity:x.quantity,hsn:"",rate:0,gst_rate:18}));
+ const d=new Date();
+ $("cust").textContent=`${cur.customer_name} · ${cur.customer_phone} · ${cur.customer_email||"no email"} · GSTIN ${cur.customer_gstin||"—"}${cur.customer_notes?" · Note: "+cur.customer_notes:""}`;
+ $("qn").value=q?q.quote_number:"";$("qd").value=q?q.quote_date:d.toISOString().slice(0,10);$("qv").value=q?q.valid_until||"":new Date(Date.now()+15*864e5).toISOString().slice(0,10);
+ $("qg").value=q?q.gst_treatment:(/^24/.test(cur.customer_gstin||"")||!cur.customer_gstin?"intra":"inter");
+ if(q)$("qt").value=q.terms||$("qt").value;$("rst").value=cur.status;
+ $("ed").hidden=false;tab(1);drawLines();msg("qm",q?"Editing saved quotation "+q.quote_number+".":"");$("ed").scrollIntoView({behavior:"smooth"});
+}
+function drawLines(){
+ $("ql").innerHTML=items.map((x,i)=>`<tr data-i="${i}"><td>${safe(x.name)}</td><td><input data-k="hsn" value="${safe(x.hsn||"")}" maxlength="8" inputmode="numeric" aria-label="HSN for ${safe(x.name)}"></td><td><input data-k="quantity" type="number" min="1" value="${x.quantity}"></td><td><input data-k="rate" type="number" min="0" step="0.01" inputmode="decimal" value="${x.rate||""}" placeholder="0.00"></td><td><select data-k="gst_rate">${[0,5,12,18,28].map(n=>`<option ${n===x.gst_rate?"selected":""}>${n}</option>`).join("")}</select></td><td data-c="b"></td><td data-c="t"></td><td data-c="s"></td></tr>`).join("");
+ $("ql").querySelectorAll("[data-k]").forEach(e=>{const h=()=>{const i=+e.closest("tr").dataset.i,k=e.dataset.k;items[i][k]=k==="hsn"?e.value.replace(/\D/g,""):k==="gst_rate"?+e.value:Math.max(0,+e.value||0);calc()};e.oninput=h;e.onchange=h});
+ calc();
+}
+function calc(){
+ items.forEach((x,i)=>{const r=$("ql").querySelector(`[data-i="${i}"]`),l=line(x);r.querySelector('[data-c=b]').textContent=inr(l.b);r.querySelector('[data-c=t]').textContent=inr(l.t);r.querySelector('[data-c=s]').textContent=inr(l.s)});
+ const t=totals(),c=Math.round(t.t/2),tax=$("qg").value==="intra"?`<div><span>CGST</span><span>₹ ${inr(c)}</span></div><div><span>SGST</span><span>₹ ${inr(t.t-c)}</span></div>`:`<div><span>IGST</span><span>₹ ${inr(t.t)}</span></div>`;
+ $("tt").innerHTML=`<div><span>Taxable value</span><span>₹ ${inr(t.b)}</span></div>${tax}<div class="g"><span>Grand total</span><span>₹ ${inr(t.g)}</span></div>`;
+}
+$("qg").onchange=calc;
+function build(){
+ if(!cur||!items.length||items.some(x=>!(x.rate>0)||!(x.quantity>0))){msg("qm","Enter a quantity and a rate above zero for every item.",1);return null}
+ const t=totals();return{request_id:cur.id,quote_date:$("qd").value,valid_until:$("qv").value||null,gst_treatment:$("qg").value,items,terms:$("qt").value,taxable_total:t.b/100,gst_total:t.t/100,grand_total:t.g/100}}
+$("sv").onclick=async()=>{
+ const q=build();if(!q)return;$("sv").disabled=true;msg("qm","Saving…");
+ const{data:{session}}=await db.auth.getSession();let res;
+ if(editing)res=await db.from("quotations").update(q).eq("id",editing.id).select().single();
+ else{const n=await db.rpc("next_quote_number");if(n.error){$("sv").disabled=false;return msg("qm","Could not generate number: "+n.error.message,1)}
+  res=await db.from("quotations").insert({...q,quote_number:n.data,status:"issued",created_by:session.user.id}).select().single()}
+ $("sv").disabled=false;if(res.error)return msg("qm","Could not save: "+res.error.message,1);
+ editing=res.data;$("qn").value=editing.quote_number;
+ const st=$("rst").value==="pending"?"quoted":$("rst").value;await db.from("quotation_requests").update({status:st}).eq("id",cur.id);
+ msg("qm","Saved as "+editing.quote_number+".");await load();cur=reqs.find(x=>x.id===cur.id);$("rst").value=cur.status;
+};
+/* ---- print ---- */
+function printable(q,c,no){
+ const cg=Math.round(q.gst_total*100/2),rows=q.items.map((x,i)=>{const l=line(x);return`<tr><td>${i+1}</td><td>${safe(x.name)}</td><td>${safe(x.hsn||"—")}</td><td>${x.quantity}</td><td style="text-align:right">${inr(x.rate*100)}</td><td>${x.gst_rate}%</td><td style="text-align:right">${inr(l.b)}</td><td style="text-align:right">${inr(l.t)}</td><td style="text-align:right">${inr(l.s)}</td></tr>`}).join("");
+ const tax=q.gst_treatment==="intra"?`<div>CGST: ₹ ${inr(cg)}</div><div>SGST: ₹ ${inr(Math.round(q.gst_total*100)-cg)}</div>`:`<div>IGST: ₹ ${inr(q.gst_total*100)}</div>`;
+ return`<div style="display:flex;justify-content:space-between;border-bottom:3px solid #a51d32;padding-bottom:12px"><div><h1 style="margin:0">VECTRA ENTERPRISES</h1><b>INDUSTRIAL • ENERGY • MRO</b><p style="margin:6px 0">First Floor, Shop No. 135 Wing, Opp. Kataria Show Room, Makarpura, Vadodara, Gujarat – 390014<br>+91 75975 77129 · vectra2029@yahoo.com<br>GSTIN: 24ABCFV2730P1ZX</p></div><div style="text-align:right"><h2 style="margin:0">QUOTATION</h2><b>${safe(no)}</b><p>Date: ${safe(q.quote_date)}<br>Valid until: ${safe(q.valid_until||"—")}</p></div></div>
+ <p><b>To:</b> ${safe(c.customer_name)}<br>${safe(c.customer_phone)} ${safe(c.customer_email||"")}<br>GSTIN: ${safe(c.customer_gstin||"—")}</p>
+ <table><thead><tr><th>#</th><th>Description</th><th>HSN/SAC</th><th>Qty</th><th>Rate ₹</th><th>GST</th><th>Taxable ₹</th><th>GST ₹</th><th>Total ₹</th></tr></thead><tbody>${rows}</tbody></table>
+ <div style="margin:16px 0 0 auto;width:290px;line-height:1.8"><div>Taxable value: ₹ ${inr(q.taxable_total*100)}</div>${tax}<h3 style="margin:6px 0">Grand total: ₹ ${inr(q.grand_total*100)}</h3></div>
+ <p><b>Amount in words:</b> ${inWords(Math.round(q.grand_total*100))}</p><p style="white-space:pre-wrap"><b>Terms &amp; Conditions</b><br>${safe(q.terms)}</p>
+ <p style="margin-top:50px;text-align:right"><b>For VECTRA ENTERPRISES</b><br><br><br>Authorised Signatory</p>`}
+$("pr").onclick=()=>{const q=build();if(!q)return;$("printArea").innerHTML=printable(q,cur,$("qn").value||"DRAFT");const old=document.title;document.title=($("qn").value||"Quotation").replace(/\//g,"-");window.print();document.title=old};
+$("wa").onclick=()=>{const t=totals(),no=$("qn").value||"(draft)";const p=(cur.customer_phone||"").replace(/\D/g,"").slice(-10);
+ const text=`Hello ${cur.customer_name}, thank you for your enquiry. Quotation ${no} from Vectra Enterprises — total ₹ ${inr(t.g)} incl. GST. Valid until ${$("qv").value||"—"}. We will share the PDF shortly.`;
+ window.open("https://wa.me/91"+p+"?text="+encodeURIComponent(text),"_blank","noopener")};
+/* ---- saved quotations ---- */
+function drawSaved(){
+ $("ql2").innerHTML=saved.length?saved.map(s=>{const c=reqs.find(r=>r.id===s.request_id);return`<div class="req"><div><strong>${safe(s.quote_number)}</strong> <span class="pill ${safe(s.status)}">${safe(s.status)}</span><small>${safe(c?c.customer_name:"—")} · ${safe(s.quote_date)} · ₹ ${inr(s.grand_total*100)}</small></div><div class="row"><select data-s="${safe(s.id)}" aria-label="Status">${["issued","accepted","rejected"].map(x=>`<option ${x===s.status?"selected":""}>${x}</option>`).join("")}</select><button class="btn ghost" data-e="${safe(s.id)}">Reopen</button></div></div>`}).join(""):"<p>No saved quotations yet.</p>";
+ $("ql2").querySelectorAll("[data-e]").forEach(b=>b.onclick=()=>{const s=saved.find(x=>x.id===b.dataset.e);openReq(s.request_id,s.id)});
+ $("ql2").querySelectorAll("[data-s]").forEach(e=>e.onchange=async()=>{const r=await db.from("quotations").update({status:e.value}).eq("id",e.dataset.s);if(r.error)alert(r.error.message);else await load().then(drawSaved)});
+}
+boot();
+})();
+</script></body></html>
