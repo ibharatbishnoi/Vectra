@@ -74,7 +74,7 @@ body.admin-open{overflow:hidden}
 </style>
 <script>
 (()=>{const open=document.getElementById("openAdmin"),close=document.getElementById("closeAdmin"),modal=document.getElementById("adminModal"),scrim=document.getElementById("adminScrim"),frame=document.getElementById("adminFrame");
-function show(){modal.hidden=false;scrim.hidden=false;document.body.classList.add("admin-open");if(frame.src==="about:blank")frame.src="admin.html?embedded=1";close.focus()}
+function show(){modal.hidden=false;scrim.hidden=false;document.body.classList.add("admin-open");if(frame.src==="about:blank")frame.src="https://vectra-enterprises.vercel.app/admin?embedded=1";close.focus()}
 function hide(){modal.hidden=true;scrim.hidden=true;document.body.classList.remove("admin-open");open?.focus()}
 open?.addEventListener("click",show);close?.addEventListener("click",hide);scrim?.addEventListener("click",hide);
 document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!modal.hidden)hide()});
