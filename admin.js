@@ -335,7 +335,7 @@ async function uploadPublic(file, folder, max = 1000, type = "image/webp") {
 function viewProducts(v) {
   const cats = [...new Set(S.products.map(p => p.category))].sort(), own = isOwner();
   v.innerHTML = `<div class="box"><div class="row"><input id="ps" type="search" placeholder="Search products" style="flex:1;min-width:180px" value="${safe(PQ.q)}"><select id="pc"><option value="">All categories</option>${optList(cats.map(c => [c, c]), PQ.c)}</select>
-  ${own ? '<button class="btn" id="pa">+ Add product</button><button class="btn ghost" id="pcr">Rename category</button>' : ""}</div>
+  ${own ? '<button class="btn" id="pa">+ Add product</button><button class="btn ghost" id="pcr">Rename category</button>' : ""}<button class="btn ghost" id="pbk" title="Download a backup you can commit to GitHub">⬇ Backup (products.json)</button><button class="btn ghost" id="pcsv">⬇ CSV</button></div>
   ${!S.products.length ? `<div class="banner" style="margin-top:12px"><b>Your catalogue is still loaded from products.json.</b> ${own ? 'Click <button class="btn" id="imp">Import products.json into the database</button> once to manage products, photos, specifications and categories here — no code or GitHub upload needed afterwards.' : "Ask the owner to import it."}</div>` : ""}
   <p class="meta" id="pcnt"></p><div class="scroll"><table class="l"><thead><tr><th></th><th>Product</th><th>Category</th><th>Brand</th><th>HSN</th><th>GST</th><th>Status</th><th></th></tr></thead><tbody id="pl"></tbody></table></div></div>`;
   const apply = () => {
@@ -346,6 +346,11 @@ function viewProducts(v) {
     $("pl").querySelectorAll("[data-e]").forEach(b => b.onclick = () => editProduct(S.products.find(p => p.id === +b.dataset.e)));
   };
   $("ps").oninput = apply; $("pc").onchange = apply; apply();
+  $("pbk").onclick = () => {
+    const prods = S.products.map(p => ({ id: p.id, n: p.name, c: p.category, i: p.image || "", brand: p.brand || "", model: p.model || "", d: p.description || "", specs: p.specs || [], images: p.images || [], ds: p.datasheet || "", hsn: p.hsn || "", gst: +p.gst_rate, active: p.active }));
+    const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([JSON.stringify({ exported: new Date().toISOString(), categories: [...new Set(prods.map(p => p.c))], products: prods }, null, 1)], { type: "application/json" })); a.download = "products.json"; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 3000);
+  };
+  $("pcsv").onclick = () => csvDownload("products.csv", [["ID", "Name", "Category", "Brand", "Model", "HSN", "GST %", "Visible", "Description", "Image"], ...S.products.map(p => [p.id, p.name, p.category, p.brand, p.model, p.hsn, p.gst_rate, p.active, p.description, p.image])]);
   if (own) {
     $("pa").onclick = () => editProduct(null);
     $("pcr").onclick = () => { const b = dlg(`<h2 style="margin-top:0">Rename category</h2><label class="f">Category<select id="rc1">${optList(cats.map(c => [c, c]), "")}</select></label><label class="f" style="margin-top:8px">New name<input id="rc2" maxlength="120"></label><p><button class="btn" id="rcg">Rename</button> <span class="msg" id="rcm"></span></p>`);

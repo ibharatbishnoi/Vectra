@@ -22,7 +22,7 @@ function finish(p) { p.tokens = new Set(tok(p.n + " " + p.brand + " " + p.model)
 const fromDb = r => finish({ id: r.id, n: r.name, c: r.category, brand: r.brand || "", model: r.model || "", d: r.description || "",
   specs: Array.isArray(r.specs) ? r.specs.filter(s => s && s.k && s.v) : [], imgs: [r.image, ...(Array.isArray(r.images) ? r.images : [])].filter(Boolean).map(V.imgUrl),
   ds: r.datasheet || "", hsn: r.hsn || "", gst: r.gst_rate, t: r.created_at ? Date.parse(r.created_at) : 0 });
-const fromJson = x => finish({ id: x.id, n: x.n, c: x.c, brand: "", model: "", d: "", specs: [], imgs: [V.imgUrl(x.i)], ds: "", hsn: "", gst: 18, t: 0 });
+const fromJson = x => finish({ id: x.id, n: x.n, c: x.c, brand: x.brand || "", model: x.model || "", d: x.d || "", specs: Array.isArray(x.specs) ? x.specs : [], imgs: [x.i, ...(x.images || [])].filter(Boolean).map(V.imgUrl), ds: x.ds || "", hsn: x.hsn || "", gst: x.gst || 18, t: 0 });
 
 async function loadCatalogue() {
   if (db) {
@@ -32,7 +32,7 @@ async function loadCatalogue() {
     } catch { /* fall through to products.json */ }
   }
   const d = await (await fetch("/products.json")).json();
-  return d.products.map(fromJson);
+  return d.products.filter(x => x.active !== false).map(fromJson);
 }
 
 loadCatalogue().then(list => {
