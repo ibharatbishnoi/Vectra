@@ -335,7 +335,7 @@ async function uploadPublic(file, folder, max = 1000, type = "image/webp") {
 function viewProducts(v) {
   const cats = [...new Set(S.products.map(p => p.category))].sort(), own = isOwner();
   v.innerHTML = `<div class="box"><div class="row"><input id="ps" type="search" placeholder="Search products" style="flex:1;min-width:180px" value="${safe(PQ.q)}"><select id="pc"><option value="">All categories</option>${optList(cats.map(c => [c, c]), PQ.c)}</select>
-  ${own ? '<button class="btn" id="pa">+ Add product</button><button class="btn ghost" id="pcr">Rename category</button>' : ""}<button class="btn ghost" id="pbk" title="Download a backup you can commit to GitHub">⬇ Backup (products.json)</button><button class="btn ghost" id="pcsv">⬇ CSV</button></div>
+  ${own ? '<button class="btn" id="pa">+ Add product</button><button class="btn" id="pbulk">⬆ Bulk add (photos / Excel)</button><button class="btn ghost" id="pcr">Rename category</button>' : ""}<button class="btn ghost" id="pbk" title="Download a backup you can commit to GitHub">⬇ Backup (products.json)</button><button class="btn ghost" id="pcsv">⬇ CSV</button></div>
   ${!S.products.length ? `<div class="banner" style="margin-top:12px"><b>Your catalogue is still loaded from products.json.</b> ${own ? 'Click <button class="btn" id="imp">Import products.json into the database</button> once to manage products, photos, specifications and categories here — no code or GitHub upload needed afterwards.' : "Ask the owner to import it."}</div>` : ""}
   <p class="meta" id="pcnt"></p><div class="scroll"><table class="l"><thead><tr><th></th><th>Product</th><th>Category</th><th>Brand</th><th>HSN</th><th>GST</th><th>Status</th><th></th></tr></thead><tbody id="pl"></tbody></table></div></div>`;
   const apply = () => {
@@ -352,7 +352,7 @@ function viewProducts(v) {
   };
   $("pcsv").onclick = () => csvDownload("products.csv", [["ID", "Name", "Category", "Brand", "Model", "HSN", "GST %", "Visible", "Description", "Image"], ...S.products.map(p => [p.id, p.name, p.category, p.brand, p.model, p.hsn, p.gst_rate, p.active, p.description, p.image])]);
   if (own) {
-    $("pa").onclick = () => editProduct(null);
+    $("pa").onclick = () => editProduct(null); $("pbulk").onclick = bulkAdd;
     $("pcr").onclick = () => { const b = dlg(`<h2 style="margin-top:0">Rename category</h2><label class="f">Category<select id="rc1">${optList(cats.map(c => [c, c]), "")}</select></label><label class="f" style="margin-top:8px">New name<input id="rc2" maxlength="120"></label><p><button class="btn" id="rcg">Rename</button> <span class="msg" id="rcm"></span></p>`);
       $("rcg").onclick = async () => { const n = $("rc2").value.trim(); if (!n) return msg("rcm", "Enter the new name.", 1); const { error } = await db.from("products").update({ category: n }).eq("category", $("rc1").value); if (error) return msg("rcm", error.message, 1); $("dlg").close(); await loadAll(); route(); toast("Category renamed") } };
     const imp = $("imp"); if (imp) imp.onclick = async () => {
@@ -394,6 +394,73 @@ function editProduct(p) {
     if (r.error) return msg("pm2", r.error.message, 1); $("dlg").close(); await loadAll(); route(); toast("Product saved");
   };
   const del = $("pdel"); if (del) del.onclick = async () => { if (!confirm("Delete “" + p.name + "” permanently? Hiding it from the website is safer.")) return; const { error } = await db.from("products").delete().eq("id", p.id); if (error) return msg("pm2", error.message, 1); $("dlg").close(); await loadAll(); route(); toast("Deleted") };
+}
+
+/* ---------- bulk add products (many photos and/or a spreadsheet) ---------- */
+const nice = f => f.replace(/\.[^.]+$/, "").replace(/^\d+[_\-\s]+/, "").replace(/[_\-]+/g, " ").replace(/\s+/g, " ").trim().replace(/\b\w/g, c => c.toUpperCase());
+const stem = f => String(f || "").toLowerCase().replace(/\.[^.]+$/, "").trim();
+function csvRows(text) {
+  const d = (text.split(/\r?\n/)[0] || "").includes("\t") ? "\t" : ","; const rows = []; let row = [], c = "", q = false;
+  for (let i = 0; i < text.length; i++) { const ch = text[i];
+    if (q) { if (ch === '"') { if (text[i + 1] === '"') { c += '"'; i++ } else q = false } else c += ch }
+    else if (ch === '"') q = true; else if (ch === d) { row.push(c); c = "" }
+    else if (ch === "\n" || ch === "\r") { if (ch === "\r" && text[i + 1] === "\n") i++; row.push(c); c = ""; if (row.some(x => x.trim())) rows.push(row); row = [] } else c += ch }
+  row.push(c); if (row.some(x => x.trim())) rows.push(row); return rows;
+}
+async function sheetRows(f) {
+  if (/\.(csv|txt)$/i.test(f.name)) return csvRows(await f.text());
+  if (!window.XLSX) await new Promise((res, rej) => { const s = document.createElement("script"); s.src = "https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"; s.onload = res; s.onerror = () => rej(new Error("Could not load the Excel reader — save the sheet as CSV instead.")); document.head.appendChild(s) });
+  const wb = XLSX.read(await f.arrayBuffer(), { type: "array" }); return XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1, blankrows: false, defval: "" }).map(r => r.map(c => String(c).trim()));
+}
+function bulkAdd() {
+  const cats = [...new Set(S.products.map(x => x.category))].sort(); let rows = [];
+  const b = dlg(`<h2 style="margin-top:0">Bulk add products</h2>
+  <div id="bs1"><p class="hint"><b>Option A — photos only:</b> select many photos; each becomes a product named after its file name (you can edit names next).<br><b>Option B — spreadsheet + photos:</b> also choose an Excel/CSV with columns <i>Name, Category, Brand, Model, Description, HSN, GST, Image</i> (Image = the photo's file name). <a href="#" id="btp">Download sample CSV</a></p>
+  <label class="f">1. Product photos (select many)<input type="file" id="bimg" accept="image/*" multiple></label>
+  <label class="f" style="margin-top:8px">2. Spreadsheet (optional)<input type="file" id="bsh" accept=".xlsx,.xls,.csv"></label>
+  <p><button class="btn" id="bnext">Continue</button> <span class="msg" id="bm1"></span></p></div>
+  <div id="bs2" hidden><div class="row"><label class="f">Category for all<input id="ball" list="bcl" maxlength="120" placeholder="Type or pick, then Apply"><datalist id="bcl">${cats.map(c => `<option value="${safe(c)}">`).join("")}</datalist></label><button class="btn ghost" id="bapp" style="align-self:flex-end">Apply to all</button></div>
+  <p class="meta" id="bsum"></p><div class="scroll"><table class="l"><thead><tr><th></th><th>Name *</th><th>Category *</th><th>Brand</th><th>HSN</th><th>GST %</th><th></th></tr></thead><tbody id="brw"></tbody></table></div>
+  <div class="row" style="margin-top:12px"><button class="btn" id="bgo">Upload &amp; add products</button><button class="btn ghost" id="bbk">Back</button><span class="msg" id="bm2"></span></div></div>`);
+  $("btp").onclick = e => { e.preventDefault(); csvDownload("bulk-products-template.csv", [["Name", "Category", "Brand", "Model", "Description", "HSN", "GST", "Image"], ["Ball Valve 2 inch", "Valves, Pipes & Fittings", "Audco", "BV-200", "Brass ball valve", "8481", "18", "ball-valve.jpg"]]) };
+  const names = () => new Set(S.products.map(x => x.name.trim().toLowerCase()));
+  const draw = () => {
+    const ex = names(); $("bsum").textContent = `${rows.length} products ready · ${rows.filter(r => !r.name || !r.category).length} need a name or category · ${rows.filter(r => ex.has(r.name.trim().toLowerCase())).length} already exist`;
+    $("brw").innerHTML = rows.map((r, i) => `<tr data-i="${i}"><td>${r.file ? `<img class="thumb" src="${safe(r.prev)}" alt="">` : "—"}</td><td><input data-k="name" value="${safe(r.name)}" maxlength="200" style="min-width:190px"></td><td><input data-k="category" list="bcl" value="${safe(r.category)}" maxlength="120" style="min-width:150px"></td><td><input data-k="brand" value="${safe(r.brand)}" maxlength="80" style="min-width:90px"></td><td><input data-k="hsn" value="${safe(r.hsn)}" maxlength="8" style="width:72px"></td><td><input data-k="gst" type="number" value="${safe(r.gst)}" style="width:62px"></td><td>${ex.has(r.name.trim().toLowerCase()) ? '<span class="pill pending">exists</span> ' : ""}<button class="x" data-x="${i}" aria-label="Remove">×</button></td></tr>`).join("");
+    $("brw").querySelectorAll("[data-k]").forEach(e => e.onchange = () => { rows[+e.closest("tr").dataset.i][e.dataset.k] = e.value });
+    $("brw").querySelectorAll("[data-x]").forEach(e => e.onclick = () => { rows.splice(+e.dataset.x, 1); draw() });
+  };
+  $("bnext").onclick = async () => {
+    const imgs = [...$("bimg").files].filter(f => f.type.startsWith("image/")), sh = $("bsh").files[0]; msg("bm1", "Reading…");
+    try {
+      if (sh) {
+        const data = await sheetRows(sh), H = { name: /name|product|item/i, category: /categor/i, brand: /brand|make/i, model: /model/i, description: /desc/i, hsn: /hsn/i, gst: /gst|tax/i, image: /image|photo|picture|file/i }, hdr = data[0] || [], map = {};
+        Object.keys(H).forEach(k => { const i = hdr.findIndex((c, j) => H[k].test(c) && !Object.values(map).includes(j)); if (i >= 0) map[k] = i }); if (map.name == null) throw new Error("The spreadsheet needs a “Name” column in the first row.");
+        const byStem = new Map(imgs.map(f => [stem(f.name), f])), g = (r, k) => (map[k] != null ? r[map[k]] || "" : "").trim();
+        rows = data.slice(1).filter(r => g(r, "name")).slice(0, 300).map(r => { const f = byStem.get(stem(g(r, "image"))) || null; return { name: g(r, "name"), category: g(r, "category"), brand: g(r, "brand"), model: g(r, "model"), description: g(r, "description"), hsn: g(r, "hsn").replace(/\D/g, ""), gst: g(r, "gst").replace(/[^\d.]/g, "") || 18, file: f, prev: f ? URL.createObjectURL(f) : "" } });
+        const used = new Set(rows.map(r => r.file).filter(Boolean)); if (!rows.length) throw new Error("No product rows found in the spreadsheet.");
+        const loose = imgs.filter(f => !used.has(f)); if (loose.length) rows.push(...loose.map(f => ({ name: nice(f.name), category: "", brand: "", model: "", description: "", hsn: "", gst: 18, file: f, prev: URL.createObjectURL(f) })));
+      } else {
+        if (!imgs.length) throw new Error("Select photos or a spreadsheet first.");
+        rows = imgs.slice(0, 300).map(f => ({ name: nice(f.name), category: "", brand: "", model: "", description: "", hsn: "", gst: 18, file: f, prev: URL.createObjectURL(f) }));
+      }
+      msg("bm1", ""); $("bs1").hidden = true; $("bs2").hidden = false; draw();
+    } catch (e) { msg("bm1", e.message, 1) }
+  };
+  $("bapp").onclick = () => { const c = $("ball").value.trim(); if (c) { rows.forEach(r => r.category = c); draw() } };
+  $("bbk").onclick = () => { $("bs1").hidden = false; $("bs2").hidden = true };
+  $("bgo").onclick = async () => {
+    const bad = rows.filter(r => !r.name.trim() || !r.category.trim()); if (bad.length) return msg("bm2", `${bad.length} row(s) still need a name and category.`, 1);
+    if (!rows.length) return; $("bgo").disabled = true; const out = [];
+    try {
+      for (let i = 0; i < rows.length; i++) {
+        msg("bm2", `Uploading ${i + 1} of ${rows.length}…`); const r = rows[i], url = r.file ? await uploadPublic(r.file, "p") : null;
+        out.push({ name: r.name.trim(), category: r.category.trim(), brand: r.brand.trim() || null, model: r.model.trim() || null, description: r.description.trim() || null, hsn: String(r.hsn || "").replace(/\D/g, "") || null, gst_rate: [0, 5, 12, 18, 28].includes(+r.gst) ? +r.gst : 18, image: url, active: true });
+      }
+      for (let i = 0; i < out.length; i += 50) { const { error } = await db.from("products").insert(out.slice(i, i + 50)); if (error) throw error }
+      $("dlg").close(); await loadAll(); route(); toast(out.length + " products added");
+    } catch (e) { msg("bm2", "Failed: " + (e.message || e) + (out.length ? " — some photos were already uploaded; check Products before retrying." : ""), 1); $("bgo").disabled = false }
+  };
 }
 
 /* ================= reports ================= */
