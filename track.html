@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Track your enquiry | Vectra Enterprises</title><meta name="robots" content="noindex">
+<meta name="theme-color" content="#101b2a"><link rel="manifest" href="/manifest.webmanifest"><link rel="icon" href="/icons/icon-192.png">
+<link rel="stylesheet" href="/styles.css">
+<style>
+body{background:var(--bg)}.box{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:20px;margin:18px 0}
+.box input,.box textarea{padding:11px;border:1px solid #ccd4dd;border-radius:6px;font:inherit;background:var(--card);color:var(--ink);width:100%}
+.steps{display:flex;gap:0;margin:16px 0;flex-wrap:wrap}.steps div{flex:1;min-width:110px;text-align:center;padding:10px 6px;font-size:13px;font-weight:700;color:var(--muted);border-bottom:4px solid var(--line)}
+.steps div.on{color:var(--ink);border-color:var(--ok)}.steps div.cur{border-color:var(--red);color:var(--red)}
+.pill{font-size:11px;font-weight:800;padding:3px 10px;border-radius:20px;background:#eef1f5;color:#344253}.pill.issued{background:#dcf3e6;color:#0d5a33}.pill.accepted{background:#d9e8ff;color:#1b4b9b}.pill.rejected{background:#fde4e8;color:#8f1b2c}.pill.revision_requested{background:#fff1d6;color:#8a5a00}
+.qcard{border:1px solid var(--line);border-radius:10px;padding:14px;margin:12px 0}.qhead{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center}
+.recent button{margin:4px 6px 0 0}ul.items{padding-left:18px;margin:8px 0}.big{font-size:22px;font-weight:800}
+</style></head><body>
+<header class="site"><div class="wrap nav"><a class="brand" href="/">VECTRA <span>ENTERPRISES</span></a><a class="btn ghost" href="/">Back to catalogue</a></div></header>
+<main class="wrap" style="max-width:860px">
+<h1 style="margin-bottom:4px">Track your enquiry</h1><p class="intro">Enter the reference number you received when you submitted your request, and the mobile number you used.</p>
+<form class="box" id="tf" onsubmit="return false"><div class="row"><label class="field" style="flex:1;min-width:180px">Reference number<input id="ref" maxlength="12" placeholder="e.g. 1A2B3C4D" autocomplete="off" style="text-transform:uppercase"></label>
+<label class="field" style="flex:1;min-width:180px">Mobile number<input id="ph" type="tel" inputmode="tel" maxlength="20" placeholder="10-digit mobile"></label></div>
+<p><button class="btn" id="go" type="submit">Check status</button></p><div class="msg" id="m" aria-live="polite"></div><div class="recent" id="recent"></div></form>
+<div id="out"></div></main>
+<div class="toast" id="toast" role="status"></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script src="/config.js"></script><script src="/shared.js"></script><script src="/track.js"></script>
+</body></html>

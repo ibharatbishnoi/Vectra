@@ -1,45 +1,18 @@
 {
   "cleanUrls": true,
   "trailingSlash": false,
+  "rewrites": [{"source": "/p/:id", "destination": "/index.html"}],
   "headers": [
-    {
-      "source": "/(.*)",
-      "headers": [
-        {
-          "key": "X-Content-Type-Options",
-          "value": "nosniff"
-        },
-        {
-          "key": "X-Frame-Options",
-          "value": "SAMEORIGIN"
-        },
-        {
-          "key": "Referrer-Policy",
-          "value": "strict-origin-when-cross-origin"
-        },
-        {
-          "key": "Permissions-Policy",
-          "value": "camera=(), microphone=(), geolocation=()"
-        }
-      ]
-    },
-    {
-      "source": "/product/(.*)",
-      "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "public, max-age=31536000, immutable"
-        }
-      ]
-    },
-    {
-      "source": "/admin",
-      "headers": [
-        {
-          "key": "X-Robots-Tag",
-          "value": "noindex, nofollow"
-        }
-      ]
-    }
+    {"source": "/(.*)", "headers": [
+      {"key": "X-Content-Type-Options", "value": "nosniff"},
+      {"key": "X-Frame-Options", "value": "SAMEORIGIN"},
+      {"key": "Referrer-Policy", "value": "strict-origin-when-cross-origin"},
+      {"key": "Permissions-Policy", "value": "camera=(), microphone=(), geolocation=()"}
+    ]},
+    {"source": "/product/(.*)", "headers": [{"key": "Cache-Control", "value": "public, max-age=2592000"}]},
+    {"source": "/icons/(.*)", "headers": [{"key": "Cache-Control", "value": "public, max-age=2592000"}]},
+    {"source": "/sw.js", "headers": [{"key": "Cache-Control", "value": "no-cache"}]},
+    {"source": "/admin", "headers": [{"key": "X-Robots-Tag", "value": "noindex, nofollow"}]},
+    {"source": "/track", "headers": [{"key": "X-Robots-Tag", "value": "noindex"}]}
   ]
 }

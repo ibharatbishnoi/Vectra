@@ -1,66 +1,20 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="robots" content="noindex,nofollow"><title>Vectra Admin</title><link rel="stylesheet" href="styles.css">
-<style>
-body{background:var(--bg)}.box{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:18px;margin:16px 0}
-.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}.row>*{min-width:0}
-input,select,textarea{padding:9px;border:1px solid #ccd4dd;border-radius:6px;font:inherit;background:var(--card);color:var(--ink)}
-.tabs button{border:0;background:none;padding:10px 14px;font-weight:800;border-bottom:3px solid transparent;color:var(--muted)}.tabs button[aria-selected=true]{color:var(--red);border-color:var(--red)}
-.req{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;border:1px solid var(--line);border-radius:8px;padding:12px;margin:8px 0}.req small{display:block;color:var(--muted)}
-.pill{font-size:11px;font-weight:800;padding:2px 9px;border-radius:20px;background:#eef1f5;color:#344253}.pill.pending{background:#fff1d6;color:#8a5a00}.pill.quoted,.pill.issued{background:#dcf3e6;color:#0d5a33}.pill.closed,.pill.rejected{background:#fde4e8;color:#8f1b2c}.pill.accepted{background:#d9e8ff;color:#1b4b9b}
-table.l{width:100%;border-collapse:collapse;font-size:13px}table.l th,table.l td{border:1px solid var(--line);padding:6px;text-align:left}table.l th{background:var(--bg)}table.l td:first-child{min-width:280px}.dg{display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-top:5px}.dg input:last-child{grid-column:1/3}table.l input,table.l select{width:100%;min-width:70px}
-.tot{margin-left:auto;width:min(320px,100%);line-height:1.9}.tot div{display:flex;justify-content:space-between}.tot .g{font-size:18px;font-weight:800;border-top:2px solid var(--ink);margin-top:4px}
-#printArea{display:none}
-@media print{body>*:not(#printArea){display:none!important}#printArea{display:block!important;font:13px Arial;color:#182230;background:#fff}#printArea table{width:100%;border-collapse:collapse;margin-top:18px}#printArea th,#printArea td{border:1px solid #cfd6de;padding:7px;text-align:left}#printArea th{background:#f1f4f7}@page{margin:14mm}}
- 
-.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin:16px 0}.kpi{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:14px}.kpi b{display:block;font-size:24px}.kpi small{color:var(--muted);font-weight:700}
-.bars{display:flex;gap:14px;align-items:flex-end;height:140px}.bars div{flex:1;text-align:center;font-size:12px;color:var(--muted)}.bars i{display:block;background:var(--red);border-radius:5px 5px 0 0;min-height:3px;margin-bottom:4px}
-.tabs{display:flex;flex-wrap:wrap;overflow-x:auto}.fs{border:1px solid var(--line);border-radius:8px;padding:12px;margin:10px 0}.fs legend{font-weight:800;font-size:13px;padding:0 6px}
-.pill.won{background:#d9e8ff;color:#1b4b9b}.pill.lost{background:#fde4e8;color:#8f1b2c}.pill.late{background:#fde4e8;color:#8f1b2c}
-.pgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:0 14px}.pgrid input{width:100%}.pr{display:flex;gap:12px;align-items:center;border:1px solid var(--line);border-radius:8px;padding:8px;margin:6px 0}.pr img{width:48px;height:48px;object-fit:contain;background:#eef1f5;border-radius:6px}.pr div{flex:1;min-width:0}.pr small{color:var(--muted);display:block}
-.field input,.field textarea{width:100%}label.field{display:block}
-html,body{min-height:100%;margin:0}
-body.embedded-admin{padding-bottom:18px}
-body.embedded-admin>header.site{display:none}
-body.embedded-admin .wrap{max-width:1180px}
-</style></head><body>
-<header class="site"><div class="wrap nav"><a class="brand" href="./">VECTRA <span>ADMIN</span></a><div class="row"><span id="who" class="meta"></span><a class="btn ghost" href="./">View site</a><button class="btn ghost" id="out" hidden>Sign out</button></div></div></header>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow"><title>Vectra Admin</title>
+<link rel="stylesheet" href="/styles.css"><link rel="stylesheet" href="/admin.css"></head>
+<body>
+<header class="site" id="topbar"><div class="wrap nav"><a class="brand" href="/">VECTRA <span>ADMIN</span></a>
+<div class="row" style="margin:0"><span id="who" class="meta" style="margin:0"></span><a class="btn ghost" href="/">View site</a><button class="btn ghost" id="out" hidden>Sign out</button></div></div></header>
 <div class="wrap">
-<div id="login" class="box" style="max-width:420px;margin:40px auto"><h2>Staff sign in</h2><div class="field"><label for="em">Email</label><input id="em" type="email" autocomplete="username"></div><div class="field"><label for="pw">Password</label><input id="pw" type="password" autocomplete="current-password"></div><p><button class="btn" id="in">Sign in</button></p><div class="msg" id="lmsg" aria-live="polite"></div></div>
-<div id="app" hidden>
-<div class="tabs" role="tablist" id="tabs"><button role="tab" data-t="d" aria-selected="true">Dashboard</button><button role="tab" data-t="r" aria-selected="false">Enquiries</button><button role="tab" data-t="f" aria-selected="false">Follow-ups <span class="pill pending" id="fcnt" hidden></span></button><button role="tab" data-t="q" aria-selected="false">Quotations</button><button role="tab" data-t="c" aria-selected="false">Customers</button><button role="tab" data-t="p" aria-selected="false">Products</button></div>
-
-<div id="vd"><div class="kpis" id="kpis"></div>
-<div class="box"><h3 style="margin-top:0">Enquiries – last 6 months</h3><div class="bars" id="bars"></div></div>
-<div class="box"><h3 style="margin-top:0">Follow-ups due</h3><div id="fdue"></div></div>
-<div class="box row"><strong>Export</strong><button class="btn ghost" id="exR">Enquiries CSV</button><button class="btn ghost" id="exQ">Quotations CSV</button></div></div>
-
-<div id="vr" hidden><div class="box"><div class="row"><input id="rs" type="search" placeholder="Search name / phone / ref" style="flex:1"><select id="rf"><option value="">All statuses</option><option>pending</option><option>quoted</option><option>won</option><option>lost</option><option>closed</option></select><select id="ra"><option value="">All staff</option></select><label class="meta">From <input id="rfrom" type="date"></label><label class="meta">To <input id="rto" type="date"></label><button class="btn ghost" id="rr">Refresh</button></div><p class="meta" id="rc"></p><div id="rl"></div></div>
-
-<div class="box" id="ed" hidden><h2 style="margin-top:0">Enquiry &amp; quotation</h2><p id="cust" class="meta"></p>
-<fieldset class="fs"><legend>Handling</legend><div class="row"><label>Assigned to<br><input id="as" list="staff" maxlength="60" placeholder="Salesperson"><datalist id="staff"></datalist></label><label>Status<br><select id="rst"><option>pending</option><option>quoted</option><option>won</option><option>lost</option><option>closed</option></select></label><label>Follow-up on<br><input id="fd" type="date"></label><label style="flex:1;min-width:200px">Follow-up note<br><input id="fn" maxlength="200" style="width:100%" placeholder="e.g. call Mr Shah about rates"></label></div>
-<label class="field">Internal notes (never shown to customer)<textarea id="inn" rows="2" maxlength="2000"></textarea></label><button class="btn ghost" id="sh">Save handling details</button> <span class="msg" id="hm" aria-live="polite"></span></fieldset>
-<div class="row" style="margin-top:14px"><label>Quote no.<br><input id="qn" readonly placeholder="auto-generated on save"></label><label>Date<br><input id="qd" type="date"></label><label>Valid until<br><input id="qv" type="date"></label><label>GST<br><select id="qg"><option value="intra">CGST + SGST (Gujarat)</option><option value="inter">IGST (interstate)</option></select></label></div>
-<div style="overflow-x:auto;margin-top:14px"><table class="l"><thead><tr><th>Product</th><th>HSN/SAC</th><th>Qty</th><th>Rate ₹</th><th>Disc %</th><th>GST %</th><th>Taxable ₹</th><th>GST ₹</th><th>Total ₹</th></tr></thead><tbody id="ql"></tbody></table></div>
-<div class="row" style="margin-top:10px"><button class="btn ghost" id="addl" type="button">+ Add line</button><label>Freight / delivery ₹<br><input id="fr" type="number" min="0" step="0.01" style="width:120px"></label><label>Freight GST %<br><select id="fg"><option>0</option><option>5</option><option>12</option><option selected>18</option></select></label></div>
-<div class="tot" id="tt"></div>
-<div class="row"><label class="field" style="flex:1;min-width:220px">Payment terms<input id="pt" maxlength="200" value="100% advance against proforma invoice"></label><label class="field" style="flex:1;min-width:220px">Delivery terms<input id="dt" maxlength="200" value="Ex-works Vadodara; delivery within 7–10 working days"></label></div>
-<label class="field">Terms &amp; conditions<textarea id="qt" rows="3">Prices are exclusive of GST unless stated. GST will be charged at applicable rates. Goods once sold will not be taken back. Subject to Vadodara jurisdiction.</textarea></label>
-<div class="row" style="margin-top:14px"><button class="btn" id="sv">Save quotation</button><button class="btn ghost" id="sn" hidden>Save as new revision</button><button class="btn ghost" id="pr">Print / Save PDF</button><button class="btn wa" id="wa">WhatsApp</button><button class="btn ghost" id="em2">Email</button></div><div class="msg" id="qm" aria-live="polite"></div></div></div>
-
-<div id="vf" hidden><div class="box"><div id="fl"></div></div></div>
-<div id="vq" hidden><div class="box"><div class="row"><input id="qs" type="search" placeholder="Search quote no. / customer" style="flex:1"><select id="qf"><option value="">All statuses</option><option>issued</option><option>accepted</option><option>rejected</option></select></div><div id="ql2"></div></div></div>
-<div id="vc" hidden><div class="box"><input id="cs" type="search" placeholder="Search customer / phone / GSTIN" style="width:100%"><div id="cl"></div></div></div>
-
-<div id="vp" hidden><div class="box"><div class="row"><input id="ps" type="search" placeholder="Search products" style="flex:1"><button class="btn" id="pn">+ Add product</button><button class="btn ghost" id="pi" hidden>Import catalogue from products.json</button></div><p class="meta" id="pc"></p><div id="pl"></div></div>
-<div class="box" id="pe" hidden><h3 style="margin-top:0" id="pt2">Product</h3><div class="pgrid"><label class="field">Name *<input id="pnm" maxlength="160"></label><label class="field">Category *<input id="pcat" list="cats" maxlength="80"><datalist id="cats"></datalist></label><label class="field">Brand<input id="pbr" maxlength="80"></label><label class="field">Image file name or URL<input id="pim" maxlength="300"></label></div>
-<label class="field">Upload photo (JPG/PNG/WebP, max 2 MB)<input id="pup" type="file" accept="image/jpeg,image/png,image/webp"></label>
-<label class="field">Description<textarea id="pds" rows="3" maxlength="2000"></textarea></label>
-<label class="field">Specifications (one per line: <code>Key: value</code>)<textarea id="psp" rows="4" maxlength="2000" placeholder="Power: 850 W&#10;Chuck size: 13 mm"></textarea></label>
-<label class="meta"><input type="checkbox" id="pac" checked> Visible on website</label>
-<div class="row" style="margin-top:12px"><button class="btn" id="ps2">Save product</button><button class="btn ghost" id="pcx">Cancel</button><button class="btn ghost" id="pdl" hidden style="color:#b51f35">Delete</button><span class="msg" id="pm" aria-live="polite"></span></div></div></div>
-</div></div>
-<div id="printArea"></div>
+<div id="login" class="box" style="max-width:420px;margin:40px auto"><h2>Staff sign in</h2>
+<div class="field"><label for="em">Email</label><input id="em" type="email" autocomplete="username"></div>
+<div class="field"><label for="pw">Password</label><input id="pw" type="password" autocomplete="current-password"></div>
+<p><button class="btn" id="in">Sign in</button></p><div class="msg" id="lmsg" aria-live="polite"></div></div>
+<div id="app" hidden><nav class="tabs" id="nav" role="tablist" aria-label="Admin sections"></nav><div id="view"></div></div>
+</div>
+<dialog id="dlg" class="adlg"><button class="dclose" id="dlgx" aria-label="Close">×</button><div id="dlgbody"></div></dialog>
+<div class="toast" id="toast" role="status"></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
-<script src="config.js"></script>
-<script src="admin.js"></script><script>if(new URLSearchParams(location.search).has("embedded"))document.body.classList.add("embedded-admin");</script></body></html>
+<script src="/config.js"></script><script src="/shared.js"></script><script src="/admin.js"></script>
+<script>if(new URLSearchParams(location.search).has("embedded"))document.body.classList.add("embedded-admin");</script>
+</body></html>
