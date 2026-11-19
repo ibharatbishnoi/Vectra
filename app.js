@@ -197,6 +197,8 @@ function drawCart() {
   });
 }
 persist();
+// Read-only view of the quotation list for v4.js (download / share).
+window.VectraList = { rows: () => cart.map(i => { const p = i.custom ? null : byId.get(i.id); const n = i.custom ? i.name : p && p.n; return n ? { name: n, qty: i.q, size: i.size || "", make: i.make || "", note: i.note || "", custom: !!i.custom } : null }).filter(Boolean) };
 
 /* drawer */
 const dr = $("drawer"), sc = $("scrim"); let last;
@@ -269,6 +271,7 @@ $("submit").onclick = async () => {
   btn.disabled = false; btn.textContent = "Submit request";
   if (error) { msg("Could not submit online. Please try again, or send it on WhatsApp.", 1); console.error(error); return }
   localStorage.setItem("vectra_last", Date.now());
+  window.vtrack && window.vtrack("quote_submit", { items: items.length, attachments: attachments.length });
   const ref = V.refOf(id); const saved = load(EKEY, []); saved.unshift({ ref, name, at: Date.now() }); save(EKEY, saved.slice(0, 8));
   cart = []; files = []; drawFiles(); persist(); $("fNotes").value = ""; msg("");
   const box = el("div", "ok-box"); box.append(el("strong", "", "Request received ✓"), el("p", "", "Reference: " + ref + ". Our team will contact you on " + phone + ". Keep this reference to track your quotation online."));

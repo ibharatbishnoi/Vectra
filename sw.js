@@ -1,6 +1,6 @@
 /* Vectra service worker: fast repeat visits + basic offline browsing. Never caches the admin panel or Supabase calls. */
-const CACHE = "vectra-v3";
-const SHELL = ["/", "/styles.css", "/app.js", "/shared.js", "/config.js", "/products.json"];
+const CACHE = "vectra-v4";
+const SHELL = ["/", "/styles.css", "/app.js", "/shared.js", "/config.js", "/products.json", "/v4.css", "/v4.js"];
 self.addEventListener("install", e => { e.waitUntil(caches.open(CACHE).then(c => Promise.allSettled(SHELL.map(u => c.add(u)))).then(() => self.skipWaiting())) });
 self.addEventListener("activate", e => { e.waitUntil(caches.keys().then(k => Promise.all(k.filter(x => x !== CACHE).map(x => caches.delete(x)))).then(() => self.clients.claim())) });
 self.addEventListener("fetch", e => {
