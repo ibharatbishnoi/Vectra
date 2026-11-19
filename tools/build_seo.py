@@ -9,7 +9,7 @@ Products you add in Admin work immediately for customers (the site loads them fr
 and /p/<id> falls back to the app). Re-run this script occasionally so Google also gets
 a dedicated page, title and description for each new product.
 """
-import json, re, sys, html, urllib.request, pathlib
+import json, re, sys, html, urllib.request, urllib.parse, pathlib, datetime
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 cfg = (ROOT / "config.js").read_text()
@@ -42,17 +42,25 @@ for p in products:
     ld = {"@context": "https://schema.org", "@type": "Product", "name": p["n"], "category": p["c"], "url": url,
           "description": desc, "brand": {"@type": "Brand", "name": p["brand"]} if p["brand"] else None, "image": img or None}
     ld = {k: v for k, v in ld.items() if v}
+    crumbs = {"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [
+        {"@type": "ListItem", "position": 1, "name": "Catalogue", "item": SITE + "/"},
+        {"@type": "ListItem", "position": 2, "name": p["c"], "item": SITE + "/?c=" + urllib.parse.quote(p["c"])},
+        {"@type": "ListItem", "position": 3, "name": p["n"], "item": url}]}
     page = tpl
+    # homepage-only markup: drop the FAQ schema and the site-wide share image from product pages
+    page = re.sub(r'<script type="application/ld\+json">\{"@context": "https://schema.org", "@type": "FAQPage".*?</script>\n?', '', page, 1, re.S)
+    page = re.sub(r'<meta property="og:image" content="[^"]*">', '', page, 1)
     page = re.sub(r"<title>.*?</title>", f"<title>{name} | Vectra Enterprises, Vadodara</title>", page, 1, re.S)
     page = re.sub(r'<meta name="description" content="[^"]*">', f'<meta name="description" content="{desc_e}">', page, 1)
     page = re.sub(r'<link rel="canonical" href="[^"]*">', f'<link rel="canonical" href="{url}">', page, 1)
     page = re.sub(r'<meta property="og:title" content="[^"]*">', f'<meta property="og:title" content="{name} | Vectra Enterprises">', page, 1)
     page = re.sub(r'<meta property="og:description" content="[^"]*">', f'<meta property="og:description" content="{desc_e}">', page, 1)
     page = re.sub(r'<meta property="og:url" content="[^"]*">', f'<meta property="og:url" content="{url}"><meta property="og:image" content="{html.escape(img, quote=True)}">', page, 1)
-    page = page.replace("</head>", '<script type="application/ld+json">' + json.dumps(ld, ensure_ascii=False).replace("</", "<\\/") + "</script>\n</head>", 1)
+    page = page.replace("</head>", '<script type="application/ld+json">' + json.dumps(ld, ensure_ascii=False).replace("</", "<\\/") + "</script>\n<script type=\"application/ld+json\">" + json.dumps(crumbs, ensure_ascii=False).replace("</", "<\\/") + "</script>\n</head>", 1)
     (out / f'{p["id"]}.html').write_text(page)
 
-urls = [SITE + "/"] + [f'{SITE}/p/{p["id"]}' for p in products]
-(ROOT / "sitemap.xml").write_text('<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' + "".join(f"<url><loc>{u}</loc></url>\n" for u in urls) + "</urlset>\n")
+today = datetime.date.today().isoformat()
+urls = [SITE + "/", SITE + "/privacy", SITE + "/terms"] + [f'{SITE}/p/{p["id"]}' for p in products]
+(ROOT / "sitemap.xml").write_text('<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' + "".join(f"<url><loc>{u}</loc><lastmod>{today}</lastmod></url>\n" for u in urls) + "</urlset>\n")
 (ROOT / "robots.txt").write_text(f"User-agent: *\nDisallow: /admin\nDisallow: /track\nSitemap: {SITE}/sitemap.xml\n")
 print(f"Generated {len(products)} product pages, sitemap.xml and robots.txt for {SITE}")
