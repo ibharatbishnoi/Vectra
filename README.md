@@ -25,3 +25,15 @@ Static site for Vercel + Supabase (no build step). Public catalogue at `/`, cust
 - Customer-wise price lists, inventory, orders/delivery tracking, Hindi version and AI search are not built yet.
 - Turn on Supabase backups; consider Cloudflare Turnstile if spam grows (form has a honeypot, cooldown and server-side checks). Attachments are limited to 5 files × 5 MB, images/PDF.
 - Excel reading loads SheetJS from `cdn.sheetjs.com` only when someone uses bulk upload.
+
+
+## High-priority refinement pass
+- Homepage trust counters now start neutral and populate from the live catalogue, avoiding stale hard-coded figures.
+- Public catalogue categories are grouped into a consistent display taxonomy; original database category values are not changed.
+- Catalogue search now includes product specifications and the stable product ID (`VE-<id>`).
+- Broken product images fall back to a neutral placeholder; catalogue loading errors show a retry action.
+- Mobile users get a persistent quotation-list action.
+- Recent enquiry shortcuts no longer retain customer mobile numbers in persistent local storage. Contact form details are kept only in the current browser tab session.
+- Added HSTS and an additional browser security header in `vercel.json`.
+
+See `HIGH_PRIORITY_IMPROVEMENTS.md` for the change summary, checks performed and deployment notes.

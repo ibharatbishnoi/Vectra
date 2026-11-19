@@ -9,6 +9,9 @@ let cat = "All", brand = "", sort = "default", q = "", shown = PAGE, cart = load
 
 function load(k, d) { try { return JSON.parse(localStorage.getItem(k)) || d } catch { return d } }
 function save(k, v) { try { localStorage.setItem(k, JSON.stringify(v)) } catch { } }
+// Migrate older recent-enquiry entries so mobile numbers are not retained in persistent browser storage.
+try { const old = JSON.parse(localStorage.getItem(EKEY) || "[]"); if (Array.isArray(old)) save(EKEY, old.filter(x => x && x.ref).map(x => ({ ref: String(x.ref), name: String(x.name || ""), at: Number(x.at) || 0 })).slice(0, 8)); } catch { }
+try { localStorage.removeItem(CKEY); } catch { }
 const el = (t, c, x) => { const e = document.createElement(t); if (c) e.className = c; if (x != null) e.textContent = x; return e };
 const toast = t => { const e = $("toast"); e.textContent = t; e.classList.add("on"); clearTimeout(toast.t); toast.t = setTimeout(() => e.classList.remove("on"), 2000) };
 const clampQty = v => Math.min(9999, Math.max(1, parseInt(v, 10) || 1));
@@ -18,7 +21,31 @@ const pImg = p => p.imgs[0] || PH;
 
 /* ================= catalogue loading (database first, products.json as fallback) ================= */
 const tok = s => (String(s).toLowerCase().match(/[a-z0-9]+/g) || []).map(w => w.length > 3 && w.endsWith("s") ? w.slice(0, -1) : w);
-function finish(p) { p.tokens = new Set(tok(p.n + " " + p.brand + " " + p.model)); p.hay = (p.n + " " + p.c + " " + p.brand + " " + p.model + " " + p.d).toLowerCase(); return p }
+const CATEGORY_ALIASES = {
+  "General Hardware": "Hardware & Workshop",
+  "General Hardware & Workshop": "Hardware & Workshop",
+  "Fasteners & Consumables": "Fasteners & Hardware",
+  "Fasteners & Hardware": "Fasteners & Hardware",
+  "Hand Tools & Storage": "Hand Tools",
+  "Hand Tools": "Hand Tools",
+  "Power Tools & Drilling": "Power Tools & Drilling",
+  "Drilling Tools": "Power Tools & Drilling",
+  "Valves, Pipes & Fittings": "Valves, Pipes & Fittings",
+  "Pipes & Fittings": "Valves, Pipes & Fittings",
+  "Welding Equipment & Gas Cutting": "Welding & Gas Equipment",
+  "Welding & Gas Equipment": "Welding & Gas Equipment",
+  "Motors, Pumps & Electrical": "Pumps, Motors & Electrical",
+  "Pumps & Motors": "Pumps, Motors & Electrical",
+  "Measuring Tools": "Measuring, Survey & Lighting"
+};
+function finish(p) {
+  p.c = CATEGORY_ALIASES[p.c] || p.c;
+  const specText = (p.specs || []).map(x => `${x.k || ""} ${x.v || ""}`).join(" ");
+  const searchText = [p.n, p.c, p.brand, p.model, p.d, specText, `VE-${p.id}`, p.id].join(" ");
+  p.tokens = new Set(tok(searchText));
+  p.hay = searchText.toLowerCase();
+  return p;
+}
 const fromDb = r => finish({ id: r.id, n: r.name, c: r.category, brand: r.brand || "", model: r.model || "", d: r.description || "",
   specs: Array.isArray(r.specs) ? r.specs.filter(s => s && s.k && s.v) : [], imgs: [r.image, ...(Array.isArray(r.images) ? r.images : [])].filter(Boolean).map(V.imgUrl),
   ds: r.datasheet || "", hsn: r.hsn || "", gst: r.gst_rate, t: r.created_at ? Date.parse(r.created_at) : 0 });
@@ -27,11 +54,14 @@ const fromJson = x => finish({ id: x.id, n: x.n, c: x.c, brand: x.brand || "", m
 async function loadCatalogue() {
   if (db) {
     try {
-      const r = await Promise.race([db.from("products").select("*").eq("active", true).order("id").limit(2000), new Promise((_, j) => setTimeout(j, 6000))]);
-      if (!r.error && r.data && r.data.length) return r.data.map(fromDb);
+      const r = await Promise.race([db.from("products").select("*").order("id").limit(2000), new Promise((_, j) => setTimeout(j, 6000))]);
+      if (!r.error && r.data && r.data.length) return r.data.filter(x => x.active === true).map(fromDb);
     } catch { /* fall through to products.json */ }
   }
-  const d = await (await fetch("/products.json")).json();
+  const response = await fetch("/products.json", { cache: "no-cache" });
+  if (!response.ok) throw new Error("Catalogue file could not be loaded");
+  const d = await response.json();
+  if (!d || !Array.isArray(d.products)) throw new Error("Catalogue data is invalid");
   return d.products.filter(x => x.active !== false).map(fromJson);
 }
 
@@ -43,7 +73,7 @@ loadCatalogue().then(list => {
   readUrl(); chips(); brandUi(); renderCats(); renderBrands(); renderStrips(); render(); drawCart();
   const m = location.pathname.match(/^\/p\/(\d+)/); if (m && byId.has(+m[1])) openProduct(+m[1], false);
   loadPopular();
-}).catch(() => { $("count").textContent = "Could not load the catalogue. Please refresh or contact us on WhatsApp." });
+}).catch(() => { $("count").textContent = "The catalogue could not be loaded. Please refresh the page or contact us on WhatsApp."; const b = el("button", "btn ghost", "Retry loading catalogue"); b.type = "button"; b.onclick = () => location.reload(); $("grid").replaceChildren(b); });
 $("year").textContent = new Date().getFullYear();
 
 /* ================= homepage sections ================= */
@@ -51,7 +81,7 @@ function renderCats() {
   const box = $("catCards"); box.innerHTML = "";
   cats.forEach(c => {
     const items = P.filter(p => p.c === c), b = el("button", "catcard"); b.type = "button";
-    const im = new Image(); im.src = pImg(items[0]); im.alt = ""; im.loading = "lazy"; im.width = 80; im.height = 80;
+    const im = new Image(); im.src = pImg(items[0]); im.alt = ""; im.loading = "lazy"; im.width = 80; im.height = 80; im.onerror = () => { im.onerror = null; im.src = PH };
     const t = el("span", "", c), n = el("small", "", items.length + " products"); const w = el("div"); w.append(t, n);
     b.append(im, w); b.onclick = () => { cat = c; shown = PAGE; chips(); render(); $("catalog").scrollIntoView() }; box.appendChild(b);
   });
@@ -63,7 +93,7 @@ function renderBrands() {
 function strip(secId, boxId, list) {
   const sec = $(secId), box = $(boxId); box.innerHTML = ""; sec.hidden = !list.length; if (!list.length) return;
   list.forEach(p => {
-    const a = el("a", "scard"); a.href = "/p/" + p.id; const im = new Image(); im.src = pImg(p); im.alt = ""; im.loading = "lazy"; im.width = 64; im.height = 64;
+    const a = el("a", "scard"); a.href = "/p/" + p.id; const im = new Image(); im.src = pImg(p); im.alt = ""; im.loading = "lazy"; im.width = 64; im.height = 64; im.onerror = () => { im.onerror = null; im.src = PH };
     a.append(im, el("span", "", p.n)); a.onclick = e => { e.preventDefault(); openProduct(p.id) }; box.appendChild(a);
   });
 }
@@ -114,7 +144,7 @@ function render() {
 }
 function card(p) {
   const c = el("article", "card"), ph = el("a", "photo"), im = new Image(); ph.href = "/p/" + p.id; ph.setAttribute("aria-label", "View " + p.n);
-  im.src = pImg(p); im.alt = p.n; im.loading = "lazy"; im.width = 240; im.height = 212; ph.appendChild(im); ph.onclick = e => { e.preventDefault(); openProduct(p.id) };
+  im.src = pImg(p); im.alt = p.n; im.loading = "lazy"; im.width = 240; im.height = 212; im.onerror = () => { im.onerror = null; im.src = PH }; ph.appendChild(im); ph.onclick = e => { e.preventDefault(); openProduct(p.id) };
   const b = el("div", "cb"), a = el("div", "act"), qt = el("input", "qty"); qt.type = "number"; qt.min = 1; qt.max = 9999; qt.value = 1; qt.setAttribute("aria-label", "Quantity for " + p.n);
   const ad = el("button", "add", "Add to list"); ad.type = "button";
   ad.onclick = () => { add(p.id, clampQty(qt.value)); ad.textContent = "Added ✓"; ad.classList.add("done"); setTimeout(() => { ad.textContent = "Add to list"; ad.classList.remove("done") }, 1200) };
@@ -151,7 +181,7 @@ function addCustom() {
   ["cName", "cSize", "cMake", "cNote"].forEach(id => $(id).value = ""); $("cQty").value = 1; persist(); toast("Custom item added");
 }
 function openCustom(name) { openDrawer(); $("custom").open = true; if (name) $("cName").value = name; $("cName").focus() }
-function persist() { save(KEY, cart); $("badge").textContent = cart.length; drawCart() }
+function persist() { save(KEY, cart); $("badge").textContent = cart.length; if ($("mobileBadge")) $("mobileBadge").textContent = cart.length; drawCart() }
 function drawCart() {
   const L = $("lines"); L.innerHTML = "";
   const rows = cart.map(i => ({ i, p: i.custom ? { n: i.name, c: "Custom item", imgs: [] } : byId.get(i.id) })).filter(r => r.p);
@@ -172,15 +202,15 @@ persist();
 const dr = $("drawer"), sc = $("scrim"); let last;
 function openDrawer() {
   last = document.activeElement; dr.classList.add("on"); sc.classList.add("on"); dr.setAttribute("aria-hidden", "false");
-  const c = load(CKEY, {}); $("fName").value = $("fName").value || c.n || ""; $("fPhone").value = $("fPhone").value || c.p || ""; $("fEmail").value = $("fEmail").value || c.e || ""; $("fGst").value = $("fGst").value || c.g || "";
+  let c = {}; try { c = JSON.parse(sessionStorage.getItem(CKEY) || "{}"); } catch { } $("fName").value = $("fName").value || c.n || ""; $("fPhone").value = $("fPhone").value || c.p || ""; $("fEmail").value = $("fEmail").value || c.e || ""; $("fGst").value = $("fGst").value || c.g || "";
   $("closeCart").focus(); drawCart();
 }
 function closeDrawer() { dr.classList.remove("on"); sc.classList.remove("on"); dr.setAttribute("aria-hidden", "true"); last && last.focus && last.focus() }
-$("openCart").onclick = openDrawer; $("cAdd").onclick = addCustom; $("openCustom").onclick = () => openCustom(); $("closeCart").onclick = closeDrawer; sc.onclick = closeDrawer;
+$("openCart").onclick = openDrawer; if ($("mobileQuote")) $("mobileQuote").onclick = openDrawer; $("cAdd").onclick = addCustom; $("openCustom").onclick = () => openCustom(); $("closeCart").onclick = closeDrawer; sc.onclick = closeDrawer;
 $("cName").addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); addCustom() } });
 document.addEventListener("keydown", e => { if (e.key === "Escape" && dr.classList.contains("on")) closeDrawer() });
-$("burger").onclick = () => { const n = $("nav").classList.toggle("on"); $("burger").setAttribute("aria-expanded", n) };
-$("nav").addEventListener("click", e => { if (e.target.tagName === "A" || e.target.tagName === "BUTTON") $("nav").classList.remove("on") });
+$("burger").onclick = () => { const n = $("nav").classList.toggle("on"); $("burger").setAttribute("aria-expanded", String(n)) };
+$("nav").addEventListener("click", e => { if (e.target.tagName === "A" || e.target.tagName === "BUTTON") { $("nav").classList.remove("on"); $("burger").setAttribute("aria-expanded", "false") } });
 $("clear").onclick = () => { cart = []; files = []; drawFiles(); persist(); msg("") };
 $("drawBulk").onclick = () => { closeDrawer(); openBulk() };
 
@@ -222,7 +252,7 @@ $("submit").onclick = async () => {
   if (Date.now() - (+localStorage.getItem("vectra_last") || 0) < 30000) return msg("Please wait a few seconds before sending another request.", 1);
   const items = cart.map(i => { const p = i.custom ? { n: i.name, c: "Custom (not in catalogue)" } : byId.get(i.id); return p && { ...(i.custom ? {} : { pid: i.id }), name: p.n, category: p.c, quantity: i.q, size: (i.size || "").trim(), make: (i.make || "").trim(), note: (i.note || "").trim() } }).filter(Boolean);
   const summary = items.map((x, n) => `${n + 1}. ${x.name} × ${x.quantity}${spec(x) ? " (" + spec(x) + ")" : ""}`).join("\n");
-  save(CKEY, { n: name, p: phone, e: email, g: gst });
+  try { sessionStorage.setItem(CKEY, JSON.stringify({ n: name, p: phone, e: email, g: gst })); } catch { }
   const wa = ref => `https://wa.me/${WA}?text=` + encodeURIComponent(`Hello Vectra Enterprises, I have submitted a quotation request${ref ? ` (Ref ${ref})` : ""}.\nName: ${name}\nPhone: ${phone}\n\n${summary}`);
   if (!db) { msg(""); $("msg").innerHTML = ""; const b = el("a", "btn wa", "Send this list on WhatsApp instead"); b.href = wa(); b.target = "_blank"; b.rel = "noopener"; $("msg").append("Online submission is not available right now. ", b); return }
   const btn = $("submit"); btn.disabled = true; btn.textContent = "Submitting…";
@@ -239,7 +269,7 @@ $("submit").onclick = async () => {
   btn.disabled = false; btn.textContent = "Submit request";
   if (error) { msg("Could not submit online. Please try again, or send it on WhatsApp.", 1); console.error(error); return }
   localStorage.setItem("vectra_last", Date.now());
-  const ref = V.refOf(id); const saved = load(EKEY, []); saved.unshift({ ref, phone, name, at: Date.now() }); save(EKEY, saved.slice(0, 8));
+  const ref = V.refOf(id); const saved = load(EKEY, []); saved.unshift({ ref, name, at: Date.now() }); save(EKEY, saved.slice(0, 8));
   cart = []; files = []; drawFiles(); persist(); $("fNotes").value = ""; msg("");
   const box = el("div", "ok-box"); box.append(el("strong", "", "Request received ✓"), el("p", "", "Reference: " + ref + ". Our team will contact you on " + phone + ". Keep this reference to track your quotation online."));
   const tr = el("a", "btn", "Track this enquiry"); tr.href = "/track?ref=" + ref; const b = el("a", "btn wa", "Also notify us on WhatsApp"); b.href = wa(ref); b.target = "_blank"; b.rel = "noopener";
@@ -254,10 +284,10 @@ function openProduct(id, push = true) {
   if (push && location.pathname !== "/p/" + id) history.pushState({ p: id }, "", "/p/" + id);
   document.title = p.n + " | Vectra Enterprises";
   const b = $("pbody"); b.innerHTML = "";
-  const wrap = el("div", "pgrid"), left = el("div"), main = el("div", "zoom"), mi = new Image(); mi.src = pImg(p); mi.alt = p.n; main.appendChild(mi);
+  const wrap = el("div", "pgrid"), left = el("div"), main = el("div", "zoom"), mi = new Image(); mi.src = pImg(p); mi.alt = p.n; mi.onerror = () => { mi.onerror = null; mi.src = PH }; main.appendChild(mi);
   main.onclick = () => main.classList.toggle("zoomed"); main.onmousemove = e => { if (!main.classList.contains("zoomed")) return; const r = main.getBoundingClientRect(); mi.style.transformOrigin = ((e.clientX - r.left) / r.width * 100) + "% " + ((e.clientY - r.top) / r.height * 100) + "%" };
   main.onmouseleave = () => main.classList.remove("zoomed"); left.appendChild(main);
-  if (p.imgs.length > 1) { const th = el("div", "thumbs"); p.imgs.forEach(u => { const t = new Image(); t.src = u; t.alt = ""; t.onclick = () => { mi.src = u; main.classList.remove("zoomed") }; th.appendChild(t) }); left.appendChild(th) }
+  if (p.imgs.length > 1) { const th = el("div", "thumbs"); p.imgs.forEach(u => { const t = new Image(); t.src = u; t.alt = ""; t.onerror = () => { t.onerror = null; t.src = PH }; t.onclick = () => { mi.src = u; main.classList.remove("zoomed") }; th.appendChild(t) }); left.appendChild(th) }
   const info = el("div", "pinfo"); info.append(el("div", "cat", p.c), el("h2", "", p.n));
   const meta = [p.brand && "Brand: " + p.brand, p.model && "Model: " + p.model].filter(Boolean).join(" · "); if (meta) info.appendChild(el("p", "meta", meta));
   info.appendChild(el("p", "pdesc", p.d || "Available in multiple sizes, ratings and brands. Add it to your quotation list and tell us the size, make and quantity you need — we will quote item by item."));

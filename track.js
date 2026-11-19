@@ -5,7 +5,15 @@ const EKEY = "vectra_enquiries_v3";
 let data = null, cred = null;
 const msg = (t, e) => { const m = $("m"); m.textContent = t; m.className = "msg" + (e ? " err" : "") };
 const toast = t => { const e = $("toast"); e.textContent = t; e.classList.add("on"); setTimeout(() => e.classList.remove("on"), 2200) };
-const load = () => { try { return JSON.parse(localStorage.getItem(EKEY)) || [] } catch { return [] } };
+const load = () => {
+  try {
+    const rows = JSON.parse(localStorage.getItem(EKEY)) || [];
+    // Keep recent reference labels only; never persist a customer's mobile number on a shared device.
+    const safeRows = rows.filter(x => x && x.ref).map(x => ({ ref: String(x.ref), name: String(x.name || ""), at: Number(x.at) || 0 }));
+    localStorage.setItem(EKEY, JSON.stringify(safeRows.slice(0, 8)));
+    return safeRows.slice(0, 8);
+  } catch { return [] }
+};
 const LABEL = { issued: "Awaiting your response", accepted: "Accepted", rejected: "Declined", revision_requested: "Revision requested" };
 
 async function lookup(ref, phone, quiet) {
@@ -16,7 +24,7 @@ async function lookup(ref, phone, quiet) {
   if (error) { console.error(error); return msg("Could not check right now. Please try again.", 1) }
   if (!d) { $("out").innerHTML = ""; return msg("No enquiry found for that reference and mobile number. Check both and try again.", 1) }
   msg(""); data = d; cred = { ref: d.ref, phone };
-  const l = load().filter(x => x.ref !== d.ref); l.unshift({ ref: d.ref, phone, name: d.customer.name, at: Date.now() }); try { localStorage.setItem(EKEY, JSON.stringify(l.slice(0, 8))) } catch { }
+  const l = load().filter(x => x.ref !== d.ref); l.unshift({ ref: d.ref, name: d.customer.name, at: Date.now() }); try { localStorage.setItem(EKEY, JSON.stringify(l.slice(0, 8))) } catch { }
   draw();
 }
 function draw() {
@@ -47,7 +55,7 @@ function draw() {
 }
 $("tf").onsubmit = e => { e.preventDefault(); lookup($("ref").value.trim(), $("ph").value.trim()) };
 const rec = load(), u = new URLSearchParams(location.search);
-if (rec.length) { $("recent").innerHTML = "<small class='meta'>Your recent enquiries:</small><br>" + rec.map((x, i) => `<button type="button" class="btn ghost" data-i="${i}">${safe(x.ref)} · ${safe(x.name || "")}</button>`).join(""); $("recent").querySelectorAll("[data-i]").forEach(b => b.onclick = () => { const x = rec[b.dataset.i]; $("ref").value = x.ref; $("ph").value = x.phone; lookup(x.ref, x.phone) }) }
-const r0 = (u.get("ref") || "").toUpperCase(); if (r0) { $("ref").value = r0; const m = rec.find(x => x.ref === r0); if (m) { $("ph").value = m.phone; lookup(m.ref, m.phone) } else $("ph").focus() }
-else if (rec.length === 1) { $("ref").value = rec[0].ref; $("ph").value = rec[0].phone }
+if (rec.length) { $("recent").innerHTML = "<small class='meta'>Your recent enquiries:</small><br>" + rec.map((x, i) => `<button type="button" class="btn ghost" data-i="${i}">${safe(x.ref)} · ${safe(x.name || "")}</button>`).join(""); $("recent").querySelectorAll("[data-i]").forEach(b => b.onclick = () => { const x = rec[b.dataset.i]; $("ref").value = x.ref; $("ph").value = ""; $("ph").focus(); msg("Enter the mobile number used for this enquiry to continue.") }) }
+const r0 = (u.get("ref") || "").toUpperCase(); if (r0) { $("ref").value = r0; const m = rec.find(x => x.ref === r0); $("ph").focus() }
+else if (rec.length === 1) { $("ref").value = rec[0].ref; $("ph").focus() }
 })();
