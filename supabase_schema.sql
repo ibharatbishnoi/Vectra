@@ -435,7 +435,7 @@ grant execute on function public.popular_products(int) to anon, authenticated;
 
 -- ---------- storage: customer reference files (private) and product images (public) ----------
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types) values
-  ('enquiry-files','enquiry-files', false, 5242880, array['image/jpeg','image/png','image/webp','application/pdf']),
+  ('enquiry-files','enquiry-files', false, 5242880, array['image/jpeg','image/png','image/webp','application/pdf','application/vnd.openxmlformats-officedocument.spreadsheetml.sheet','application/vnd.ms-excel','text/csv','text/plain','application/vnd.openxmlformats-officedocument.wordprocessingml.document','application/msword']),
   ('product-images','product-images', true, 3145728, array['image/jpeg','image/png','image/webp','application/pdf'])
 on conflict (id) do update set file_size_limit = excluded.file_size_limit, allowed_mime_types = excluded.allowed_mime_types;
 

@@ -217,6 +217,8 @@ $("clear").onclick = () => { cart = []; files = []; drawFiles(); persist(); msg(
 $("drawBulk").onclick = () => { closeDrawer(); openBulk() };
 
 /* attachments */
+const MIME = { pdf: "application/pdf", jpg: "image/jpeg", jpeg: "image/jpeg", png: "image/png", webp: "image/webp", xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", xls: "application/vnd.ms-excel", csv: "text/csv", txt: "text/plain", docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document", doc: "application/msword" };
+const mimeOf = f => MIME[(f.name.split(".").pop() || "").toLowerCase()] || "";
 async function shrink(f) {
   if (!/^image\/(jpeg|png|webp)$/.test(f.type) || f.size < 1.5e6) return f;
   try {
@@ -228,7 +230,7 @@ async function shrink(f) {
 $("fFiles").onchange = async e => {
   for (const f of [...e.target.files]) {
     if (files.length >= 5) { toast("Maximum 5 files"); break }
-    if (!/^(image\/(jpeg|png|webp)|application\/pdf)$/.test(f.type)) { toast(f.name + ": only images or PDF"); continue }
+    if (!mimeOf(f)) { toast(f.name + ": use PDF, image, Excel, CSV or Word"); continue }
     const s = await shrink(f); if (s.size > 5242880) { toast(f.name + " is over 5 MB"); continue } files.push(s);
   }
   e.target.value = ""; drawFiles();
@@ -263,8 +265,8 @@ $("submit").onclick = async () => {
     for (let i = 0; i < files.length; i++) {
       btn.textContent = `Uploading file ${i + 1}/${files.length}…`; const f = files[i];
       const path = `${id}/${Date.now()}-${i}-${f.name.replace(/[^\w.\-]+/g, "_").slice(-50)}`;
-      const up = await db.storage.from("enquiry-files").upload(path, f, { contentType: f.type });
-      if (up.error) throw up.error; attachments.push({ path, name: f.name.slice(0, 80), size: f.size, type: f.type });
+      const up = await db.storage.from("enquiry-files").upload(path, f, { contentType: mimeOf(f) || f.type });
+      if (up.error) throw up.error; attachments.push({ path, name: f.name.slice(0, 80), size: f.size, type: mimeOf(f) || f.type });
     }
   } catch (err) { btn.disabled = false; btn.textContent = "Submit request"; console.error(err); return msg("Could not upload your files. Remove them or try again — or send without attachments.", 1) }
   const { error } = await db.from("quotation_requests").insert({ id, customer_name: name, customer_phone: phone, customer_email: email || null, customer_gstin: gst || null, customer_notes: notes || null, items, attachments, status: "pending" });
@@ -331,7 +333,7 @@ $("cmpGo").onclick = () => {
 };
 
 /* ================= bulk enquiry (Excel / CSV / paste) ================= */
-const bd = $("bdlg"); let brows = [];
+const bd = $("bdlg"); let brows = [], poNote = "";
 function openBulk() { $("bstep1").hidden = false; $("bstep2").hidden = true; $("bmsg").textContent = ""; bd.showModal() }
 ["openBulk", "openBulk2", "openBulk3"].forEach(id => $(id).onclick = openBulk);
 $("btpl").onclick = () => {
@@ -388,7 +390,7 @@ $("bparse").onclick = async () => {
   } catch (e) { m.className = "msg err"; m.textContent = e.message || "Could not read that file." }
 };
 function drawBulk() {
-  const auto = brows.filter(r => r.pick !== "custom").length; $("bsum").textContent = `${brows.length} items read · ${auto} matched to the catalogue · ${brows.length - auto} will be added as custom items. Check the matches below.`;
+  const auto = brows.filter(r => r.pick !== "custom").length; $("bsum").textContent = `${brows.length} items read · ${auto} matched to the catalogue · ${brows.length - auto} will be added as custom items. Check the matches below.${poNote}`;
   const tb = $("brows"); tb.innerHTML = "";
   brows.forEach((r, i) => {
     const tr = el("tr"), sel = el("select"); sel.setAttribute("aria-label", "Match for " + r.name);
@@ -407,6 +409,34 @@ $("badd").onclick = () => {
     if (r.pick !== "custom") cart.push({ id: +r.pick, q: r.qty, size: r.size, make: r.make, note: r.note }); else cart.push({ custom: true, name: r.name, q: r.qty, size: r.size, make: r.make, note: r.note }); n++;
   });
   persist(); bd.close(); toast(n + " items added to your list"); openDrawer();
+};
+
+/* ---- hook used by ai-po.js: show AI-read PO lines in the same review table ---- */
+window.VectraBulk = {
+  loadXlsx,
+  show(list, info = {}) {
+    const rows = (list || []).slice(0, MAXCART).map(x => ({ name: String(x.name || "").slice(0, 200).trim(), qty: clampQty(x.qty), size: String(x.size || "").slice(0, 60), make: String(x.make || "").slice(0, 60), note: String(x.note || "").slice(0, 200), ai: x.catalogueId, conf: x.confidence })).filter(x => x.name);
+    brows = rows.map(x => {
+      const c = candidates(x.name), aiP = x.ai != null && byId.get(+x.ai);
+      if (aiP) { const rest = c.filter(y => y[0].id !== aiP.id); c.length = 0; c.push([aiP, 1], ...rest.slice(0, 3)) }
+      const auto = aiP ? x.conf !== "low" : c.length && c[0][1] >= 0.7;
+      return { name: x.name, qty: x.qty, size: x.size, make: x.make, note: x.note, cands: c, pick: auto ? String(c[0][0].id) : "custom" };
+    });
+    const bits = [info.number && "PO " + info.number, info.date && "dated " + info.date].filter(Boolean).join(" ");
+    poNote = ` AI read${bits ? " " + bits : " your file"}. AI can make mistakes, so please check every row${info.warnings && info.warnings.length ? ". Notes: " + info.warnings.join(" ") : ""}.`;
+    if (info.number || info.delivery) {
+      const line = "Customer PO" + (info.number ? ": " + info.number : "") + (info.date ? " dated " + info.date : "") + (info.delivery ? " | Deliver to: " + info.delivery : ""), n = $("fNotes");
+      if (!n.value.includes(line)) n.value = (n.value ? n.value + "\n" : "") + line.slice(0, 300);
+    }
+    drawBulk(); $("bstep1").hidden = true; $("bstep2").hidden = false; if (!bd.open) bd.showModal();
+  },
+  async attach(f) {
+    if (!mimeOf(f)) return false;
+    if (files.some(x => x.name === f.name && x.size === f.size)) return true;
+    if (files.length >= 5) { toast("Maximum 5 files attached"); return false }
+    const s = await shrink(f); if (s.size > 5242880) { toast(f.name + " is over 5 MB, so it was not attached"); return false }
+    files.push(s); drawFiles(); return true;
+  }
 };
 
 /* ================= staff portal (opens same-origin /admin in a modal) ================= */

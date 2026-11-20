@@ -29,3 +29,10 @@
 .hero h1{font-size:clamp(30px,4.8vw,52px);max-width:900px}
 .brandtxt{white-space:nowrap}
 @media(max-width:480px){.brandtxt{font-size:15px;letter-spacing:.02em}.brandlogo{height:36px}.top .wrap{justify-content:center;text-align:center}}
+/* AI PO upload */
+.po{border:2px dashed var(--line);border-radius:12px;padding:16px;background:var(--bg);margin-bottom:6px}.po.drag{border-color:var(--red);background:#fff5f6}
+.potitle{display:flex;align-items:center;gap:8px;font-size:17px}.aitag{background:var(--red);color:#fff;font-size:11px;font-weight:900;letter-spacing:.08em;border-radius:6px;padding:2px 7px}
+.orsep{display:flex;align-items:center;gap:12px;margin:16px 0;color:var(--muted);font-size:13px;font-weight:700}.orsep::before,.orsep::after{content:"";flex:1;height:1px;background:var(--line)}
+.po .msg .linkbtn{display:inline-block;margin-top:6px}
+.spin{display:inline-block;width:14px;height:14px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;animation:sp .7s linear infinite;vertical-align:-2px;margin-right:6px}@keyframes sp{to{transform:rotate(360deg)}}
+@media(prefers-reduced-motion:reduce){.spin{animation:none}}
